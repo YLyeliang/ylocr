@@ -4,6 +4,72 @@ import os, sys, json
 import cv2
 import numpy as np
 import math
+from urllib.parse import unquote
+
+
+def intersection(bboxA, bboxB):
+    """
+    Calculate the intersection between bboxes.
+    Examples:
+        >>> bboxA = np.array([[10, 10, 20, 20], [20, 20, 30, 30], [25, 25, 35, 35]])
+        >>> bboxB = np.array([[30, 30, 40, 40]])
+        >>> intersection(bboxA,bboxB)
+        >>> [[0],[0],[25]]
+    Args:
+        bboxA(np.ndarray):(N,4)
+        bboxB: (M,4)
+    Returns:
+        inter(np.ndarray): with shape (N X M), which is a intersection mapping between bboxes.
+    """
+    bottom_right = np.minimum(bboxA[:, None, 2:], bboxB[:, 2:])
+    top_left = np.maximum(bboxA[:, None, :2], bboxB[:, :2])
+    inter = (bottom_right - top_left).clip(0).prod(2)
+    return inter
+
+
+def random_bg_region(img_shape, h_ratio=0.2, w_ratio=0.8):
+    """
+    random generate the left top point and bottom right point in the image
+    Args:
+        img_shape(list): h,w
+
+    Returns:
+        list of xyxy
+    """
+    h, w = img_shape
+    max_h = max(h * h_ratio, 33)
+    max_w = max(w * w_ratio, 101)
+    crop_h = np.random.randint(32, max_h)
+    crop_w = np.random.randint(100, max_w)
+    x_min = np.random.randint(0, w - crop_w)
+    y_min = np.random.randint(0, h - crop_h)
+    x_max = x_min + crop_w
+    y_max = y_min + crop_h
+    return [x_min, y_min, x_max, y_max]
+
+
+def crop_bg_exclude_text(image, bboxes, num=10):
+    """
+    Crop a image into multiple small regions, while these
+    Args:
+        image:
+        bboxes(list(np.ndarray): a list of bbox, each one is xyxy
+        num:
+    Returns:
+    """
+    bboxes = np.array(bboxes)
+    shape = image.shape[:2]
+    patches = []
+    for i in range(num):
+        crop = random_bg_region(shape)
+        inter = intersection(bboxes, np.array(crop)[np.newaxis, :])
+        overlap = (inter > 0).any()  # if crop region overlapped the text region
+        if overlap:
+            continue
+        else:
+            patch = image[crop[1]:crop[3], crop[0]:crop[2]]
+            patches.append(patch)
+    return patches
 
 
 def get_rotate_crop_image(img, points, direction="top", rotate_ratio=True):
@@ -83,34 +149,76 @@ class Rotate(object):
         return included_angle
 
 
-IMAGE_PATH = "../data/train/"
-csvs = [
-    "../data/Xeon1OCR_round1_train1_20210526.csv",
-    "../data/Xeon1OCR_round1_train_20210524.csv",
-    "../data/Xeon1OCR_round1_train2_20210526.csv"
-]
-train = pd.concat([pd.read_csv(c) for c in csvs])
+if __name__ == '__main__':
+    out_root = "../data/crop_debug"
+    debug = 1
+    IMAGE_PATH = "../data/train/"
+    csvs = [
+        # "../data/Xeon1OCR_round1_train1_20210526.csv",
+        # "../data/Xeon1OCR_round1_train_20210524.csv",
+        "../data/Xeon1OCR_round1_train2_20210526.csv"
+    ]
 
-idx = 0
-for row in train.iloc[:].iterrows():
-    path = json.loads(row[1]['原始数据'])['tfspath']
-    img_path = IMAGE_PATH + path.split('/')[-1]
-    flag = os.path.isfile(img_path)
-    if not flag: continue
-    labels = json.loads(row[1]['融合答案'])[0]
+    train = pd.concat([pd.read_csv(c) for c in csvs])
+    for i, row in enumerate(train.iloc[:].iterrows()):
+        path = json.loads(row[1]['原始数据'])['tfspath']
+        labels = json.loads(row[1]['融合答案'])[0]
+        img_name = path.split('/')[-1]
+        img_name = unquote(img_name)
+        img_path = IMAGE_PATH + img_name
+        if not os.path.isfile(img_path):
+            print("not file")
+            continue
+        image = cv2.imread(img_path)
+        shape = image.shape[:2]
+        if shape[0] < 50 or shape[1] < 128:
+            continue
+        points = []
+        for label in labels[:]:
+            coord = [int(float(x)) for x in label['coord']]
+            coord = np.array(coord).reshape(4, 2)
+            x_min = np.min(coord[:, 0])
+            y_min = np.min(coord[:, 1])
+            x_max = np.max(coord[:, 0])
+            y_max = np.max(coord[:, 1])
+            points.append([x_min, y_min, x_max, y_max])
+        if len(points) == 0:
+            continue
+        points = np.array(points)
+        patches = crop_bg_exclude_text(image, points, num=5)
+        for num, patch in enumerate(patches):
+            patch_name = img_name[:-4] + f"_{num}.jpg"
 
-    image = Image.open(img_path)
-    for label in labels[:]:
-        text = json.loads(label['text'])['text']
-        coord = [int(float(x)) for x in label['coord']]
-        coordinate = {'left_top': coord[:2], 'right_top': coord[2:4], 'right_bottom': coord[4:6],
-                      'left_bottom': coord[-2:]}
-        rotate = Rotate(image, coordinate)
-        corp_img = rotate.run().convert('RGB')
-        corp_img.save(f'../data/det_images/{img_path.split("/")[-1][:-4]}_{idx}.jpg')
+            cv2.imwrite(os.path.join(out_root, patch_name), patch)
+        print(f"{i}:    {len(patches)}")
 
-        with open('../data/train_list.txt', 'a+') as up:
-            up.write(f'./det_images/{img_path.split("/")[-1][:-4]}_{idx}.jpg\t{text}\n')
-        idx += 1
-
-    print(path)
+# original crop text region into patches
+# IMAGE_PATH = "../data/train/"
+# csvs = [
+#     # "../data/Xeon1OCR_round1_train1_20210526.csv",
+#     "../data/Xeon1OCR_round1_train_20210524.csv",
+#     "../data/Xeon1OCR_round1_train2_20210526.csv"
+# ]
+# train = pd.concat([pd.read_csv(c) for c in csvs])
+#
+# idx = 0
+# for row in train.iloc[:].iterrows():
+#     path = json.loads(row[1]['原始数据'])['tfspath']
+#     img_path = IMAGE_PATH + path.split('/')[-1]
+#     flag = os.path.isfile(img_path)
+#     if not flag: continue
+#     labels = json.loads(row[1]['融合答案'])[0]
+#
+#     image = Image.open(img_path)
+#     for label in labels[:]:
+#         text = json.loads(label['text'])['text']
+#         coord = [int(float(x)) for x in label['coord']]
+#         coordinate = {'left_top': coord[:2], 'right_top': coord[2:4], 'right_bottom': coord[4:6],
+#                       'left_bottom': coord[-2:]}
+#         rotate = Rotate(image, coordinate)
+#         corp_img = rotate.run().convert('RGB')
+#         corp_img.save(f'../data/det_images/{img_path.split("/")[-1][:-4]}_{idx}.jpg')
+#
+#         with open('../data/train_list.txt', 'a+') as up:
+#             up.write(f'./det_images/{img_path.split("/")[-1][:-4]}_{idx}.jpg\t{text}\n')
+#         idx += 1
