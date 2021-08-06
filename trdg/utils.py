@@ -4,6 +4,10 @@ Utility functions
 
 import os
 
+import numpy as np
+from hanziconv import HanziConv
+from fontTools.ttLib import TTFont
+
 
 def load_dict(lang):
     """Read the dictionnary file and returns all words in it.
@@ -11,10 +15,10 @@ def load_dict(lang):
 
     lang_dict = []
     with open(
-        os.path.join(os.path.dirname(__file__), "dicts", lang + ".txt"),
-        "r",
-        encoding="utf8",
-        errors="ignore",
+            os.path.join(os.path.dirname(__file__), "dicts", lang + ".txt"),
+            "r",
+            encoding="utf8",
+            errors="ignore",
     ) as d:
         lang_dict = [l for l in d.read().splitlines() if len(l) > 0]
     return lang_dict
@@ -38,3 +42,33 @@ def load_fonts(lang):
                 os.path.join(os.path.dirname(__file__), "fonts/latin")
             )
         ]
+
+
+def valid_sentence(string, char_idx_dict):
+    """
+    消除不在词库里的字符
+    """
+    return ''.join([char for char in string if char in char_idx_dict])
+
+
+def valid_char(string, font):
+    """
+    消除不在字体里的字符
+    """
+    font = TTFont(font)
+    uniMap = font['cmap'].tables[0].ttFont.getBestCmap()
+    return ''.join([char for char in string if ord(char) in uniMap])
+
+
+def text_content_gen(text, char_idx_dict, flag, count=(1, 30)):
+    if flag == 'tra':
+        text = HanziConv.toTraditional(text)  # Traditional
+    else:
+        text = text
+
+    valid_text = valid_sentence(text, char_idx_dict)  # 字符都在词库里
+    text_len = np.random.randint(count[0], count[1])
+    if len(valid_text) < text_len:
+        return valid_text
+    start = np.random.randint(len(valid_text) - text_len)
+    return valid_text[start:start + text_len]

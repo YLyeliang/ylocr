@@ -24,7 +24,7 @@ class GeneratorFromStrings:
         is_handwritten=False,
         width=-1,
         alignment=1,
-        text_color="#282828",
+        text_color="#282828,#FFFFFF",
         orientation=0,
         space_width=1.0,
         character_spacing=0,
@@ -35,7 +35,7 @@ class GeneratorFromStrings:
         image_dir=os.path.join(
             "..", os.path.split(os.path.realpath(__file__))[0], "images"
         ),
-        stroke_width=0, 
+        stroke_width=0,
         stroke_fill="#282828",
         image_mode="RGB",
     ):
@@ -114,3 +114,4 @@ class GeneratorFromStrings:
             ),
             self.strings[(self.generated_count - 1) % len(self.strings)],
         )
+

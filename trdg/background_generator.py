@@ -55,7 +55,34 @@ def quasicrystal(height, width):
     return image.convert("RGBA")
 
 
-def image(height, width, image_dir):
+def ColourDistance(rgb_1, rgb_2):
+    R_1, G_1, B_1 = rgb_1
+    R_2, G_2, B_2 = rgb_2
+    rmean = (R_1 + R_2) / 2
+    R = R_1 - R_2
+    G = G_1 - G_2
+    B = B_1 - B_2
+    return math.sqrt((2 + rmean / 256) * (R ** 2) + 4 * (G ** 2) + (2 + (255 - rmean) / 256) * (B ** 2))
+
+
+def plain_color(height, width, t_color):
+    """
+    Create a background with random plain color
+    Args:
+        height:
+        width:
+        t_color: the text color
+    """
+    for i in range(10):
+        bg_color = np.random.randint(0, 255, 3)
+        color_distance = ColourDistance(bg_color, t_color)
+        if color_distance > 200:
+            break
+    image = (np.ones((height, width, 3)) * bg_color).astype(np.uint8)
+    return Image.fromarray(image, mode='RGB').convert("RGBA")
+
+
+def image(height, width, image_dir, t_color):
     """
         Create a background with a image
     """
@@ -65,6 +92,11 @@ def image(height, width, image_dir):
         pic = Image.open(
             os.path.join(image_dir, images[rnd.randint(0, len(images) - 1)])
         )
+        img = np.asarray(pic.copy())
+        bg_color = img.reshape(-1, 3).mean(0)
+        color_distance = ColourDistance(t_color, bg_color)
+        if color_distance < 100:
+            return plain_color(height, width, t_color)
 
         if pic.size[0] < width:
             pic = pic.resize(

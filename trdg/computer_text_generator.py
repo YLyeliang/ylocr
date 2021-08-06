@@ -43,9 +43,9 @@ def _generate_horizontal_text(
     stroke_width=0, stroke_fill="#282828"
 ):
     image_font = ImageFont.truetype(font=font, size=font_size)
-
+    # 空格宽度
     space_width = int(image_font.getsize(" ")[0] * space_width)
-
+    # 是否按空格切分单词
     if word_split:
         splitted_text = []
         for w in text.split(" "):
@@ -54,11 +54,13 @@ def _generate_horizontal_text(
         splitted_text.pop()
     else:
         splitted_text = text
-
+    # 单个字符的宽度
     piece_widths = [
         image_font.getsize(p)[0] if p != " " else space_width for p in splitted_text
     ]
+    # 文本宽度
     text_width = sum(piece_widths)
+    # 如果不切分单词，则文本宽度要加上字符间的间距
     if not word_split:
         text_width += character_spacing * (len(text) - 1)
 
@@ -70,7 +72,7 @@ def _generate_horizontal_text(
     txt_img_draw = ImageDraw.Draw(txt_img)
     txt_mask_draw = ImageDraw.Draw(txt_mask, mode="RGB")
     txt_mask_draw.fontmode = "1"
-
+    # 文本颜色 随机选择两个颜色区间的值
     colors = [ImageColor.getrgb(c) for c in text_color.split(",")]
     c1, c2 = colors[0], colors[-1]
 
@@ -108,9 +110,9 @@ def _generate_horizontal_text(
         )
 
     if fit:
-        return txt_img.crop(txt_img.getbbox()), txt_mask.crop(txt_img.getbbox())
+        return txt_img.crop(txt_img.getbbox()), txt_mask.crop(txt_img.getbbox()), fill
     else:
-        return txt_img, txt_mask
+        return txt_img, txt_mask,fill
 
 
 def _generate_vertical_text(
@@ -170,6 +172,6 @@ def _generate_vertical_text(
         )
 
     if fit:
-        return txt_img.crop(txt_img.getbbox()), txt_mask.crop(txt_img.getbbox())
+        return txt_img.crop(txt_img.getbbox()), txt_mask.crop(txt_img.getbbox()),fill
     else:
-        return txt_img, txt_mask
+        return txt_img, txt_mask,fill

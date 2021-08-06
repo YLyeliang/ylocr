@@ -22,69 +22,69 @@ class FakeTextDataGenerator(object):
 
     @classmethod
     def generate(
-        cls,
-        index,
-        text,
-        font,
-        out_dir,
-        size,
-        extension,
-        skewing_angle,
-        random_skew,
-        blur,
-        random_blur,
-        background_type,
-        distorsion_type,
-        distorsion_orientation,
-        is_handwritten,
-        name_format,
-        width,
-        alignment,
-        text_color,
-        orientation,
-        space_width,
-        character_spacing,
-        margins,
-        fit,
-        output_mask,
-        word_split,
-        image_dir,
-        stroke_width=0, 
-        stroke_fill="#282828",
-        image_mode="RGB", 
+            cls,
+            index,
+            text,
+            font,
+            out_dir,
+            size,
+            extension,
+            skewing_angle,
+            random_skew,
+            blur,
+            random_blur,
+            background_type,
+            distorsion_type,
+            distorsion_orientation,
+            is_handwritten,
+            name_format,
+            width,
+            alignment,
+            text_color,
+            orientation,
+            space_width,
+            character_spacing,
+            margins,
+            fit,
+            output_mask,
+            word_split,
+            image_dir,
+            stroke_width=0,
+            stroke_fill="#282828",
+            image_mode="RGB",
     ):
         """
 
         Args:
-            index:
-            text:
-            font:
-            out_dir:
-            size:
-            extension:
-            skewing_angle:
-            random_skew:
-            blur:
-            random_blur:
-            background_type:
-            distorsion_type:
-            distorsion_orientation:
-            is_handwritten:
-            name_format:
-            width:
-            alignment:
-            text_color:
-            orientation:
-            space_width:
-            character_spacing:
-            margins:
-            fit:
-            output_mask:
-            word_split:
-            image_dir:
-            stroke_width:
-            stroke_fill:
-            image_mode:
+            index(int): the index of ith generated text
+            text(str): the content of text
+            font(str): the ttf file with corresponding font type.
+            out_dir(str): output dir
+            size(int): 生成的背景高度(水平文本)/宽度(垂直文本) 字体尺寸
+            extension(str): the suffix of image
+            skewing_angle(int): 歪斜角度
+            random_skew(bool): If true, the skewing angle would be [-a,a]
+            blur(int): 模糊半径/强度
+            random_blur(bool):
+            background_type(int): 0:gaussian noise 1:plain white 2: 晶体 3: 图片
+            distorsion_type(int): 0: not distortion, 1: sin distortion, 2: cos distortion, else: random distortion
+            distorsion_orientation(int): 0: vertical 1: horizontal 2: both
+            is_handwritten(bool): Whther use GAN to generate handwritten text
+            name_format(int):produced files will be named. 0: [TEXT]_[ID].[EXT], 1: [ID]_[TEXT].[EXT] 2: [ID].[EXT] + one file labels.txt containing id-to-label mappings
+            width(int): the background width
+            alignment(int): 0: left alignment, 1: center alignment, 2: right alignment
+            text_color(str): text color
+            orientation(int): 0 is horizontal, 1 is vertical
+            space_width(float): 单词之间的空格宽度,这里表示" "宽度的倍数
+            character_spacing(int): 字符之间的空格宽度，像素为单位，Default is 0
+            margins(tuple(int)): the distance between four directions and text region. 一般实际字体大小= 字体尺寸- margins方向
+            fit(bool): Whether crop the text region to make the image looks tight.
+            output_mask(bool): Whether output text region mask
+            word_split(bool):
+            image_dir(str): the background image dir
+            stroke_width(int): 笔画宽度
+            stroke_fill(str): stroke color filled in
+            image_mode(str): Default is 'RGB'
 
         Returns:
 
@@ -103,19 +103,22 @@ class FakeTextDataGenerator(object):
                 raise ValueError("Vertical handwritten text is unavailable")
             image, mask = handwritten_text_generator.generate(text, text_color)
         else:
-            image, mask = computer_text_generator.generate(
-                text,
-                font,
-                text_color,
-                size,
-                orientation,
-                space_width,
-                character_spacing,
-                fit,
-                word_split,
-                stroke_width, 
-                stroke_fill,
-            )
+            try:
+                image, mask, t_color = computer_text_generator.generate(
+                    text,
+                    font,
+                    text_color,
+                    size,
+                    orientation,
+                    space_width,
+                    character_spacing,
+                    fit,
+                    word_split,
+                    stroke_width,
+                    stroke_fill,
+                )
+            except Exception as e:
+                return None
         random_angle = rnd.randint(0 - skewing_angle, skewing_angle)
 
         rotated_img = image.rotate(
@@ -126,9 +129,9 @@ class FakeTextDataGenerator(object):
             skewing_angle if not random_skew else random_angle, expand=1
         )
 
-        #############################
-        # Apply distorsion to image #
-        #############################
+        ##################################
+        # Apply distorsion to text image #
+        ##################################
         if distorsion_type == 0:
             distorted_img = rotated_img  # Mind = blown
             distorted_mask = rotated_mask
@@ -202,9 +205,13 @@ class FakeTextDataGenerator(object):
             background_img = background_generator.quasicrystal(
                 background_height, background_width
             )
+        elif background_type == 3:
+            background_img = background_generator.plain_color(
+                background_height, background_width, t_color
+            )
         else:
             background_img = background_generator.image(
-                background_height, background_width, image_dir
+                background_height, background_width, image_dir, t_color
             )
         background_mask = Image.new(
             "RGB", (background_width, background_height), (0, 0, 0)
@@ -249,13 +256,18 @@ class FakeTextDataGenerator(object):
         )
         final_image = background_img.filter(gaussian_filter)
         final_mask = background_mask.filter(gaussian_filter)
-        
+
         ############################################
         # Change image mode (RGB, grayscale, etc.) #
         ############################################
-        
+
         final_image = final_image.convert(image_mode)
-        final_mask = final_mask.convert(image_mode) 
+        final_mask = final_mask.convert(image_mode)
+
+        # rotate the vertical image
+        if orientation == 1:
+            final_image = final_image.rotate(90, expand=True)
+            final_mask = final_mask.rotate(90, expand=True)
 
         #####################################
         # Generate name for resulting image #
