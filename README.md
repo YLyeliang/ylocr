@@ -8,8 +8,15 @@
 
 ### 数据部分
 更新了比赛中数据下载、文本区域裁剪部分。
+
 21/7/29更新：
+
 对部分用到的数据集进行了介绍
+
+### 问题记录
+计算CTC loss时报错： cannot convert Tensor into numpy call。 原因：numpy版本过高。
+
+
 
 
 

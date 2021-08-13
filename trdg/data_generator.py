@@ -1,9 +1,12 @@
 import os
 import random as rnd
 
-from PIL import Image, ImageFilter
+import numpy as np
+from PIL import Image, ImageFilter, ImageColor
 
 from trdg import computer_text_generator, background_generator, distorsion_generator
+from trdg.background_generator import ColourDistance, generate_color
+from trdg.aug.dataaug import img_aug
 
 try:
     from trdg import handwritten_text_generator
@@ -52,6 +55,7 @@ class FakeTextDataGenerator(object):
             stroke_width=0,
             stroke_fill="#282828",
             image_mode="RGB",
+            max_width=640,
     ):
         """
 
@@ -73,7 +77,7 @@ class FakeTextDataGenerator(object):
             name_format(int):produced files will be named. 0: [TEXT]_[ID].[EXT], 1: [ID]_[TEXT].[EXT] 2: [ID].[EXT] + one file labels.txt containing id-to-label mappings
             width(int): the background width
             alignment(int): 0: left alignment, 1: center alignment, 2: right alignment
-            text_color(str): text color
+            text_color(str): text color, format "low_color,high_color" with Ox format
             orientation(int): 0 is horizontal, 1 is vertical
             space_width(float): 单词之间的空格宽度,这里表示" "宽度的倍数
             character_spacing(int): 字符之间的空格宽度，像素为单位，Default is 0
@@ -95,30 +99,55 @@ class FakeTextDataGenerator(object):
         horizontal_margin = margin_left + margin_right
         vertical_margin = margin_top + margin_bottom
 
+        #######################
+        # Generate text color #
+        #######################
+        # 文本颜色 随机选择两个颜色区间的值
+        # 背景为随机纯色和图片的情况下，计算色差，使得文本和背景具有一定差异。
+        if background_type == 3:  # 纯色背景
+            while True:
+                bg_color = np.random.randint(0, 255, 3)
+                t_color = generate_color(text_color)
+                color_distance = ColourDistance(bg_color, t_color)
+                if color_distance > 200:
+                    break
+        elif background_type > 3:  # 图片
+            images = os.listdir(image_dir)
+            pic = Image.open(
+                os.path.join(image_dir, images[rnd.randint(0, len(images) - 1)])
+            )
+            img = np.asarray(pic.copy())
+            while True:
+                bg_color = img.reshape(-1, 3).mean(0)
+                t_color = generate_color(text_color)
+                color_distance = ColourDistance(bg_color, t_color)
+                if color_distance > 100:
+                    break
+        else:
+            t_color = generate_color(text_color)
+
         ##########################
         # Create picture of text #
         ##########################
         if is_handwritten:
             if orientation == 1:
                 raise ValueError("Vertical handwritten text is unavailable")
-            image, mask = handwritten_text_generator.generate(text, text_color)
+            image, mask = handwritten_text_generator.generate(text, t_color)
         else:
-            try:
-                image, mask, t_color = computer_text_generator.generate(
-                    text,
-                    font,
-                    text_color,
-                    size,
-                    orientation,
-                    space_width,
-                    character_spacing,
-                    fit,
-                    word_split,
-                    stroke_width,
-                    stroke_fill,
-                )
-            except Exception as e:
-                return None
+            image, mask, text = computer_text_generator.generate(
+                text,
+                font,
+                t_color,
+                size,
+                orientation,
+                space_width,
+                character_spacing,
+                fit,
+                word_split,
+                stroke_width,
+                stroke_fill,
+                max_width
+            )
         random_angle = rnd.randint(0 - skewing_angle, skewing_angle)
 
         rotated_img = image.rotate(
@@ -207,11 +236,11 @@ class FakeTextDataGenerator(object):
             )
         elif background_type == 3:
             background_img = background_generator.plain_color(
-                background_height, background_width, t_color
+                background_height, background_width, bg_color
             )
         else:
             background_img = background_generator.image(
-                background_height, background_width, image_dir, t_color
+                background_height, background_width, pic
             )
         background_mask = Image.new(
             "RGB", (background_width, background_height), (0, 0, 0)
@@ -269,6 +298,9 @@ class FakeTextDataGenerator(object):
             final_image = final_image.rotate(90, expand=True)
             final_mask = final_mask.rotate(90, expand=True)
 
+        # Image augmentation
+        final_image = img_aug(final_image)
+
         #####################################
         # Generate name for resulting image #
         #####################################
@@ -296,5 +328,5 @@ class FakeTextDataGenerator(object):
                 final_mask.save(os.path.join(out_dir, mask_name))
         else:
             if output_mask == 1:
-                return final_image, final_mask
-            return final_image
+                return final_image, final_mask, text
+            return final_image, text

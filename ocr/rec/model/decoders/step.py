@@ -17,6 +17,7 @@ class StepDecoder(keras.Model):
 
         self.drop_out = layers.Dropout(rate=0.2)
         self.dense = layers.TimeDistributed(layers.Dense(num_classes))
+        self.softmax = tf.nn.softmax
 
     def call(self, x, training=None, mask=None):
         x = self.flatten(x)
@@ -24,5 +25,5 @@ class StepDecoder(keras.Model):
             x = self.drop_out(x)
 
         x = self.dense(x)
-        pred = tf.nn.softmax(x)
+        pred = self.softmax(x)
         return pred

@@ -56,6 +56,7 @@ max_label_len = max([len(str(text)) for text in image_texts])
 
 char_list = sorted(vocab)
 
+
 def encode_to_labels(txt):
     # encoding each output word into digits
     dig_lst = []
@@ -68,6 +69,7 @@ def encode_to_labels(txt):
 
     return pad_sequences([dig_lst], maxlen=max_label_len, padding='post', value=len(char_list))[0]
 
+
 padded_image_texts = list(map(encode_to_labels, image_texts))
 
 train_image_paths = image_paths[: int(len(image_paths) * 0.90)]
@@ -75,6 +77,7 @@ train_image_texts = padded_image_texts[: int(len(image_texts) * 0.90)]
 
 val_image_paths = image_paths[int(len(image_paths) * 0.90):]
 val_image_texts = padded_image_texts[int(len(image_texts) * 0.90):]
+
 
 def process_single_sample(img_path, label):
     # 1. Read image
@@ -90,6 +93,7 @@ def process_single_sample(img_path, label):
     img = tf.image.resize(img, [32, 128])
 
     return {"image": img, "label": label}
+
 
 batch_size = 256
 
@@ -119,8 +123,9 @@ char_to_num = layers.experimental.preprocessing.StringLookup(
 
 # Mapping integers back to original characters
 num_to_char = layers.experimental.preprocessing.StringLookup(
-    vocabulary=char_to_num.get_vocabulary(), mask_token=None, invert=True,num_oov_indices=0
+    vocabulary=char_to_num.get_vocabulary(), mask_token=None, invert=True, num_oov_indices=0
 )
+
 
 class CTCLayer(layers.Layer):
 
@@ -129,7 +134,7 @@ class CTCLayer(layers.Layer):
         self.loss_fn = keras.backend.ctc_batch_cost
 
     def call(self, y_true, y_pred):
-        # Compute the training-time loss value and add it
+        # Compute the training-time losses value and add it
         # to the layer using `self.add_loss()`.
 
         batch_len = tf.cast(tf.shape(y_true)[0], dtype="int64")
@@ -144,6 +149,7 @@ class CTCLayer(layers.Layer):
 
         # At test time, just return the computed predictions
         return y_pred
+
 
 def ctc_decoder(predictions):
     '''
@@ -169,6 +175,7 @@ def ctc_decoder(predictions):
         text_list.append(ans)
 
     return text_list
+
 
 figures_list = []
 
@@ -210,13 +217,14 @@ class PlotPredictions(tf.keras.callbacks.Callback):
             ax[i // 4, i % 4].axis("off")
 
         plt.show()
-        #plt.savefig("predictions_epoch_"+ str(epoch)+'.png', bbox_inches = 'tight', pad_inches = 0)
+        # plt.savefig("predictions_epoch_"+ str(epoch)+'.png', bbox_inches = 'tight', pad_inches = 0)
 
         figures_list.append(fig)
 
     def on_epoch_end(self, epoch, logs=None):
         if epoch % self.frequency == 0:
             self.plot_predictions(epoch)
+
 
 def train(epochs):
     # input with shape of height=32 and width=128
@@ -225,15 +233,15 @@ def train(epochs):
     labels = layers.Input(name="label", shape=(None,), dtype="float32")
 
     conv_1 = Conv2D(32, (3, 3), activation="selu", padding='same')(inputs)
-    pool_1 = MaxPool2D(pool_size=(2, 2))(conv_1)
+    pool_1 = MaxPool2D(pool_size=(2, 2))(conv_1)  # 16 64
 
     conv_2 = Conv2D(64, (3, 3), activation="selu", padding='same')(pool_1)
-    pool_2 = MaxPool2D(pool_size=(2, 2))(conv_2)
+    pool_2 = MaxPool2D(pool_size=(2, 2))(conv_2)  # 8 32
 
     conv_3 = Conv2D(128, (3, 3), activation="selu", padding='same')(pool_2)
     conv_4 = Conv2D(128, (3, 3), activation="selu", padding='same')(conv_3)
 
-    pool_4 = MaxPool2D(pool_size=(2, 1))(conv_4)
+    pool_4 = MaxPool2D(pool_size=(2, 1))(conv_4)  # 4 32
 
     conv_5 = Conv2D(256, (3, 3), activation="selu", padding='same')(pool_4)
 
@@ -242,11 +250,11 @@ def train(epochs):
 
     conv_6 = Conv2D(256, (3, 3), activation="selu", padding='same')(batch_norm_5)
     batch_norm_6 = BatchNormalization()(conv_6)
-    pool_6 = MaxPool2D(pool_size=(2, 1))(batch_norm_6)
+    pool_6 = MaxPool2D(pool_size=(2, 1))(batch_norm_6)  # 2 32
 
-    conv_7 = Conv2D(64, (2, 2), activation="selu")(pool_6)
+    conv_7 = Conv2D(64, (2, 2), activation="selu")(pool_6)  # 1 31
 
-    squeezed = Lambda(lambda x: K.squeeze(x, 1))(conv_7) # 31,512
+    squeezed = Lambda(lambda x: K.squeeze(x, 1))(conv_7)  # 31,512
 
     # bidirectional LSTM layers with units=128
     blstm_1 = Bidirectional(CuDNNLSTM(128, return_sequences=True))(squeezed)
@@ -258,7 +266,7 @@ def train(epochs):
 
     optimizer = Adam(lr=0.001, beta_1=0.9, beta_2=0.999, clipnorm=1.0)
 
-    #model to be used at training time
+    # model to be used at training time
     model = Model(inputs=[inputs, labels], outputs=output)
     model.compile(optimizer=optimizer)
 
@@ -287,6 +295,7 @@ def train(epochs):
 
     return model
 
+
 model = train(epochs=30)
 
 model.load_weights('C_LSTM_best.hdf5')
@@ -296,4 +305,3 @@ prediction_model = keras.models.Model(
     model.get_layer(name="image").input, model.get_layer(name="dense").output
 )
 prediction_model.summary()
-

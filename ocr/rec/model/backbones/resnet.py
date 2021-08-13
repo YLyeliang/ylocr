@@ -18,12 +18,8 @@ class ResNet(keras.Model):
                  stem_channels=64,
                  strides=((1, 1), (2, 2), (2, 1), (2, 1)),
                  dilations=(1, 1, 1, 1),
-                 out_indices=(0, 1, 2, 3),
-                 act='relu',
-                 deep_stem=False):
+                 act='relu'):
         super(ResNet, self).__init__()
-
-        self.deep_stem = deep_stem
 
         self.block, stage_blocks = self.arch_settings[depth]
         self.stage_blocks = stage_blocks
@@ -35,26 +31,37 @@ class ResNet(keras.Model):
 
         for i, num_blocks in enumerate(self.stage_blocks):
             stride = strides[i]
-            dilation = dilations[i]
             planes = stem_channels * 2 ** i  # 64 128 256 512
             res_layer = ResLayer(self.block, planes, kernel_size=3, strides=stride, act=act, num_blocks=num_blocks,
                                  name=f"conv{i + 1}")
             self.res_layer.append(res_layer)
 
     def make_stem(self, stem_channels):
-        if self.deep_stem:
-            self.stem = keras.Sequential([convBlock(stem_channels, 7, 2, 'relu', name="stem"),
-                                          ])
-        else:
-            self.conv1 = convBlock(stem_channels, 7, 2, 'relu', name="stem")
-        self.maxpool = layers.MaxPool2D((3, 3), 2, padding='SAME', name="pool")
+        self.stem = keras.Sequential([layers.Conv2D(stem_channels, kernel_size=3, kernel_initializer='he_normal',
+                                                    padding='SAME', activation='relu', name='conv1'),
+                                      convBlock(stem_channels, 3, (2, 2), act='relu', name="conv2")
+                                      ])
 
     def call(self, x, training=None, mask=None):
-        if self.deep_stem:
-            x = self.stem(x)
-        else:
-            x = self.conv1(x)
-        x = self.maxpool(x)
+        x = self.stem(x)
+
+        for i, res_layer in enumerate(self.res_layer):
+            x = res_layer(x)
+        return x
+
+
+class ResNetV2(ResNet):
+    def __init__(self,
+                 depth=50,
+                 stem_channels=64,
+                 strides=((1, 1), (2, 2), (2, 1), (2, 1)),
+                 dilations=(1, 1, 1, 1),
+                 act='relu',
+                 deep_stem=True):
+        super(ResNetV2, self).__init__(depth, stem_channels, strides, dilations, act=act,)
+
+    def call(self, x, training=None, mask=None):
+        x = self.stem(x)
 
         for i, res_layer in enumerate(self.res_layer):
             x = res_layer(x)

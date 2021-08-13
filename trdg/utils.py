@@ -68,7 +68,7 @@ def text_content_gen(text, char_idx_dict, flag, count=(1, 30)):
 
     valid_text = valid_sentence(text, char_idx_dict)  # 字符都在词库里
     text_len = np.random.randint(count[0], count[1])
-    if len(valid_text) < text_len:
+    if len(valid_text) <= text_len:
         return valid_text
     start = np.random.randint(len(valid_text) - text_len)
     return valid_text[start:start + text_len]

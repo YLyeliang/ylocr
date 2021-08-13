@@ -150,47 +150,67 @@ class Rotate(object):
 
 
 if __name__ == '__main__':
-    out_root = "../data/crop_debug"
-    debug = 1
-    IMAGE_PATH = "../data/train/"
-    csvs = [
-        # "../data/Xeon1OCR_round1_train1_20210526.csv",
-        # "../data/Xeon1OCR_round1_train_20210524.csv",
-        "../data/Xeon1OCR_round1_train2_20210526.csv"
-    ]
-
-    train = pd.concat([pd.read_csv(c) for c in csvs])
-    for i, row in enumerate(train.iloc[:].iterrows()):
-        path = json.loads(row[1]['原始数据'])['tfspath']
-        labels = json.loads(row[1]['融合答案'])[0]
-        img_name = path.split('/')[-1]
-        img_name = unquote(img_name)
-        img_path = IMAGE_PATH + img_name
-        if not os.path.isfile(img_path):
-            print("not file")
-            continue
-        image = cv2.imread(img_path)
-        shape = image.shape[:2]
-        if shape[0] < 50 or shape[1] < 128:
-            continue
-        points = []
-        for label in labels[:]:
-            coord = [int(float(x)) for x in label['coord']]
-            coord = np.array(coord).reshape(4, 2)
-            x_min = np.min(coord[:, 0])
-            y_min = np.min(coord[:, 1])
-            x_max = np.max(coord[:, 0])
-            y_max = np.max(coord[:, 1])
-            points.append([x_min, y_min, x_max, y_max])
-        if len(points) == 0:
-            continue
-        points = np.array(points)
-        patches = crop_bg_exclude_text(image, points, num=5)
+    # 小票类背景裁剪
+    bg = "../data/receipt_bg"
+    files = os.listdir(bg)
+    index = 0
+    out_root = '../data/crop_receipt'
+    for file in files:
+        path = os.path.join(bg, file)
+        image = cv2.imread(path)
+        patches = []
+        for i in range(10):
+            crop = random_bg_region(image.shape[:2])
+            patch = image[crop[1]:crop[3], crop[0]:crop[2]]
+            patches.append(patch)
         for num, patch in enumerate(patches):
-            patch_name = img_name[:-4] + f"_{num}.jpg"
+            patch_name = f"{str(index).ljust(4, '0')}_{num}.jpg"
 
             cv2.imwrite(os.path.join(out_root, patch_name), patch)
-        print(f"{i}:    {len(patches)}")
+            index += 1
+
+# 比赛数据背景裁剪
+# out_root = "../data/crop_debug"
+# debug = 1
+# IMAGE_PATH = "../data/train/"
+# csvs = [
+#     # "../data/Xeon1OCR_round1_train1_20210526.csv",
+#     # "../data/Xeon1OCR_round1_train_20210524.csv",
+#     "../data/Xeon1OCR_round1_train2_20210526.csv"
+# ]
+#
+# train = pd.concat([pd.read_csv(c) for c in csvs])
+# for i, row in enumerate(train.iloc[:].iterrows()):
+#     path = json.loads(row[1]['原始数据'])['tfspath']
+#     labels = json.loads(row[1]['融合答案'])[0]
+#     img_name = path.split('/')[-1]
+#     img_name = unquote(img_name)
+#     img_path = IMAGE_PATH + img_name
+#     if not os.path.isfile(img_path):
+#         print("not file")
+#         continue
+#     image = cv2.imread(img_path)
+#     shape = image.shape[:2]
+#     if shape[0] < 50 or shape[1] < 128:
+#         continue
+#     points = []
+#     for label in labels[:]:
+#         coord = [int(float(x)) for x in label['coord']]
+#         coord = np.array(coord).reshape(4, 2)
+#         x_min = np.min(coord[:, 0])
+#         y_min = np.min(coord[:, 1])
+#         x_max = np.max(coord[:, 0])
+#         y_max = np.max(coord[:, 1])
+#         points.append([x_min, y_min, x_max, y_max])
+#     if len(points) == 0:
+#         continue
+#     points = np.array(points)
+#     patches = crop_bg_exclude_text(image, points, num=5)
+#     for num, patch in enumerate(patches):
+#         patch_name = img_name[:-4] + f"_{num}.jpg"
+#
+#         cv2.imwrite(os.path.join(out_root, patch_name), patch)
+#     print(f"{i}:    {len(patches)}")
 
 # original crop text region into patches
 # IMAGE_PATH = "../data/train/"
