@@ -1,0 +1,17 @@
+# base
+
+
+
+# tensorflow
+tensorflow >=2.2.0
+
+# ocr
+beautifulsoup4
+requests
+diffimg
+fonttools
+
+
+# plotting
+matplotlib
+seaborn

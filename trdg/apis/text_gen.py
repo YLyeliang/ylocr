@@ -14,7 +14,16 @@ class textImgGen:
     1-> 随机生成文本： 1）中文：语料库随机抽取; 2) 随机生成：字母、数字和标点
     2-> 判断生成文本是否均在字体中,消除不在的;消除后判断长度，为空时重新生成
     3-> 随机生成文本生成时的其他参数：歪斜，模糊，扭曲，垂直/水平，字符间距，空格间距，文本与边缘距离/是否完全贴边，描边宽度，
-    Returns:
+    Args:
+        batch_size:
+        img_h:
+        char_idx_dict:
+        strings:
+        absolute_max_string_len:
+        fonts:
+        size:
+        bg_image_dir:
+        **generator_kwargs:
     """
 
     def __init__(
@@ -27,6 +36,7 @@ class textImgGen:
             img_h=32,
             bg_image_dir=None,
     ):
+
         self.batch_size = batch_size
         self.img_h = img_h
         self.char_idx_dict = char_idx_dict
@@ -65,11 +75,11 @@ class textImgGen:
             text = create_strings_randomly(2, allow_variable=True, count=1, let=False, num=True, sym=False, lang='en')
             text = "".join(text)
         elif random_num > 0.1:  # 纯字母
-            text = create_strings_randomly(3, allow_variable=True, count=1, let=True, num=False, sym=False,
+            text = create_strings_randomly(2, allow_variable=True, count=1, let=True, num=False, sym=False,
                                            lang='en')
             text = "".join(text)
         else:  # 数字+字母+符号
-            text = create_strings_randomly(3, allow_variable=True, count=1, let=True, num=True, sym=True,
+            text = create_strings_randomly(2, allow_variable=True, count=1, let=True, num=True, sym=True,
                                            lang='en')
             text = "".join(text)
         text = text.strip()  # 去除字符收尾两端的空格

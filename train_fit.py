@@ -4,6 +4,8 @@
 # @File: train_fit.py
 
 import codecs
+import pickle
+
 import numpy as np
 import re
 import cv2
@@ -150,7 +152,10 @@ if __name__ == '__main__':
 
     recognizer_config['converter']['char_idx_dict'] = char_idx_dict
 
-    strings = ["哈哈", 'Hhasf', "sdjflksdjlkjl", 'haha sfjslal']
+    strings_path = "data/wiki_corpus.pkl"
+    with open(strings_path, 'rb') as f:
+        strings = pickle.load(f)
+
     font_root = "trdg/fonts/"
     font_type = ['cn', 'latin']
     fonts = {}
@@ -183,3 +188,5 @@ if __name__ == '__main__':
 
     eval_iter = 10
     s = time.time()
+
+    tf.data.TextLineDataset().padded_batch()
