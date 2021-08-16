@@ -15,7 +15,6 @@ class textImgGen:
     2-> 判断生成文本是否均在字体中,消除不在的;消除后判断长度，为空时重新生成
     3-> 随机生成文本生成时的其他参数：歪斜，模糊，扭曲，垂直/水平，字符间距，空格间距，文本与边缘距离/是否完全贴边，描边宽度，
     Args:
-        batch_size:
         img_h:
         char_idx_dict:
         strings:
@@ -28,7 +27,6 @@ class textImgGen:
 
     def __init__(
             self,
-            batch_size,
             char_idx_dict,
             strings,
             absolute_max_string_len,
@@ -37,7 +35,6 @@ class textImgGen:
             bg_image_dir=None,
     ):
 
-        self.batch_size = batch_size
         self.img_h = img_h
         self.char_idx_dict = char_idx_dict
         self.chars = list(self.char_idx_dict.keys())

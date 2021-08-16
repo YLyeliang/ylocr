@@ -42,6 +42,6 @@ def read_pkl():
 
 
 if __name__ == '__main__':
-    # parse_wiki()
-    read_pkl()
-pickle.dump(lines, fw)
+    parse_wiki()
+    # read_pkl()
+# pickle.dump(lines, fw)

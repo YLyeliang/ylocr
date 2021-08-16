@@ -165,7 +165,7 @@ if __name__ == '__main__':
         fonts[type] = fonts_list
     dataset = OnlineDataSet(char_idx_dict, strings, max_sequence_len=32, fonts=fonts, bg_image_dir='data/crop_debug',
                             batch_size=4).next_train
-
+    tf.data.Dataset.from_generator
     strategy = tf.distribute.MirroredStrategy()
     batch_size = recognizer_config['train_cfg']['batch_size_per_card'] * strategy.num_replicas_in_sync
 

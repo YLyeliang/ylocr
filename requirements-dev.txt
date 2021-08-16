@@ -1,17 +1,38 @@
 # base
-
-
-
-# tensorflow
-tensorflow >=2.2.0
+# numpy
+# scipy
+addict
+imgaug
+levenshtein
+opencv-python==4.1.2.30
+pandas
+pillow
+tqdm
+terminaltables
+pyYAML
+jsonschema
+tornado
+requests
 
 # ocr
-beautifulsoup4
-requests
+fontTools
 diffimg
-fonttools
+hanziconv
+levenshtein
+lmdb
+Polygons
+Shapely
+pyclipper
+beautifulsoup4
 
-
-# plotting
+# plot
 matplotlib
 seaborn
+
+# torch
+#torch == 1.7.1+cu101
+#torchvsion == 0.8.2+cu101
+
+# tensorflow
+#tensorflow==2.3.0
+

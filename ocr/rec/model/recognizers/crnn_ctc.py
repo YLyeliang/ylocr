@@ -31,8 +31,8 @@ class CRNNNet(keras.Model):
         output = self.decoder(x, training)
         return output
 
-    def forward_train(self, data, label):
-        output = self(data)
-        y_true, label_length = label['label'], label['label_length']
-        loss = self.loss(output, y_true, label_length)
-        return output, loss
+    def forward_train(self, data, y_true):
+        y_pred = self(data)
+        # y_true, label_length = label['label'], label['label_length']
+        loss = self.loss(y_true, y_pred)
+        return y_pred, loss
