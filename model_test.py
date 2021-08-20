@@ -2,7 +2,7 @@
 # @Time : 2021/8/6 上午10:28
 # @Author: yl
 # @File: model_test.py
-from ocr.rec.model.backbones.resnet import ResNet
+from ocr.rec.model.backbones.resnet_backup import ResNet
 import tensorflow.keras as keras
 import tensorflow as tf
 

@@ -9,6 +9,8 @@ import cv2
 from trdg.apis.text_gen import textImgGen
 import tensorflow as tf
 
+AUTOTUNE = tf.data.AUTOTUNE
+
 
 class OnlineDataSet:
     def __init__(self,
@@ -42,7 +44,7 @@ class OnlineDataSet:
         else:
             self.blank_label = blank_index
         self.max_sequence_len = max_sequence_len
-        self.generator = textImgGen(batch_size=batch_size, img_h=img_size[0], char_idx_dict=char_idx_dict,
+        self.generator = textImgGen(img_h=img_size[0], char_idx_dict=char_idx_dict,
                                     strings=strings, absolute_max_string_len=max_sequence_len, fonts=fonts,
                                     bg_image_dir=bg_image_dir)
 
@@ -203,6 +205,9 @@ class DatasetBuilder:
             self.blank_label = blank_index
         self.max_sequence_len = max_sequence_len
         self.generator = generator
+        self.char_idx_table = tf.lookup.StaticHashTable(
+            tf.lookup.KeyValueTensorInitializer(tf.convert_to_tensor(list(char_idx_dict.keys())),
+                                                tf.convert_to_tensor(list(char_idx_dict.values()))), default_value=-1)
 
     @property
     def num_classes(self):
@@ -213,13 +218,14 @@ class DatasetBuilder:
         return img_shape[1] <= self.img_shape[1]
 
     def parse_generator(self):
-        return tf.data.Dataset.from_generator(self.generator)
+        return tf.data.Dataset.from_generator(self.generator.next_single, output_types=(tf.uint8, tf.string),
+                                              output_shapes=((self.img_shape[0], None, self.img_shape[2]), ()))
 
     def preprocess(self, img, label):
         if self.aspect_ratio:
             img_shape = tf.shape(img)  # h w c
             scale_factor = self.img_shape[0] / img_shape[0]
-            img_width = scale_factor * tf.cast(img_shape[1], tf.float32)
+            img_width = scale_factor * tf.cast(img_shape[1], tf.float64)
             img_width = tf.cast(img_width, tf.int32)
         else:
             img_width = self.img_shape[1]
@@ -228,4 +234,18 @@ class DatasetBuilder:
 
     def _tokenize(self, imgs, labels):
         chars = tf.strings.unicode_split(labels, 'UTF-8')
-        tokens = tf.ragged.map_flat_values()
+        tokens = tf.ragged.map_flat_values(self.char_idx_table.lookup, chars)
+        tokens = tokens.to_sparse()
+        return imgs, tokens
+
+    def __call__(self, batch_size, is_training):
+        ds = self.parse_generator()
+        ds = ds.map(self.preprocess, AUTOTUNE)
+        if self.aspect_ratio and batch_size != 1:
+            ds = ds.filter(self._filter_img)
+            ds = ds.padded_batch(batch_size, padded_shapes=((32, self.img_shape[1], 3), ()))
+        else:
+            ds = ds.batch(batch_size)
+        ds = ds.map(self._tokenize, AUTOTUNE)
+        ds.prefetch(AUTOTUNE)
+        return ds

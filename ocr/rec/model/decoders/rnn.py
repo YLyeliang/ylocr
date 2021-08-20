@@ -20,11 +20,16 @@ class Im2Seq(keras.layers.Layer):
         return x
 
 
-class DecoderWithRNN(keras.Sequential):
+class DecoderWithRNN:
     def __init__(self, units=128):
         super(DecoderWithRNN, self).__init__()
-        self.add(layers.Bidirectional(CuDNNLSTM(units, return_sequences=True)), name="lstm_1")
-        self.add(layers.Bidirectional(CuDNNLSTM(units, return_sequences=True)), name="lstm_2")
+        self.lstm_1 = layers.Bidirectional(CuDNNLSTM(units, return_sequences=True))
+        self.lstm_2 = layers.Bidirectional(CuDNNLSTM(units, return_sequences=True))
+
+    def __call__(self, x):
+        x = self.lstm_1(x)
+        x = self.lstm_2(x)
+        return x
 
 
 class DecoderWithFC(keras.Sequential):
@@ -33,7 +38,7 @@ class DecoderWithFC(keras.Sequential):
         self.add(layers.TimeDistributed(layers.Dense(units)), name='fc')
 
 
-class SequenceDecoder(keras.Model):
+class SequenceDecoder:
     """
     Sequence decode part, 3 choices:
     reshape -> fc / rnn
@@ -61,11 +66,11 @@ class SequenceDecoder(keras.Model):
             }
             assert decoder_type in support_decoder_dict, '{} must in {}'.format(
                 decoder_type, support_decoder_dict.keys())
-            self.decoder = support_decoder_dict[decoder_type](256)
+            self.decoder = support_decoder_dict[decoder_type](hidden_size)
             self.only_reshape = False
-        self.pred = layers.Dense(num_classes, activation='softmax', name='dense')
+        self.pred = layers.Dense(num_classes, name='dense')
 
-    def call(self, x, training=None, mask=None):
+    def __call__(self, x):
         x = self.decoder_reshape(x)
         if not self.only_reshape:
             x = self.decoder(x)
@@ -73,7 +78,7 @@ class SequenceDecoder(keras.Model):
         return pred
 
 
-class StepDecoder(keras.Model):
+class StepDecoder(object):
     """
     the feature shape from backbone is N 2 W C
     Args:
@@ -81,22 +86,26 @@ class StepDecoder(keras.Model):
     """
 
     def __init__(self,
-                 num_classes=None):
+                 num_classes):
         super(StepDecoder, self).__init__()
         self.num_classes = num_classes
         self.permute = layers.Permute((2, 1, 3), name='permute')
         self.flatten = layers.TimeDistributed(layers.Flatten(), name="flatten")  # flatten h c into one channel
 
         self.drop_out = layers.Dropout(rate=0.2)
-        self.dense = layers.TimeDistributed(layers.Dense(num_classes), name='fc')
-        self.softmax = tf.nn.softmax
+        self.dense = layers.TimeDistributed(layers.Dense(num_classes, input_shape=(None,)), name='fc')
+        # self.softmax = layers.Softmax()
 
-    def call(self, x, training=None, mask=None):
+    def __call__(self, x):
+        return self.call(x)
+
+    def call(self, x):
         x = self.permute(x)
         x = self.flatten(x)
-        if training:
-            x = self.drop_out(x)
+        # if training:
+        x = self.drop_out(x)
 
-        x = self.dense(x)
-        pred = self.softmax(x, axis=-1)
+        pred = self.dense(x)
+        # if not training:
+        #     pred = self.softmax(pred)
         return pred

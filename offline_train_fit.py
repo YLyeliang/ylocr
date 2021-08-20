@@ -1,21 +1,17 @@
 # -*- coding: utf-8 -*-
-# @Time : 2021/8/13 下午5:15
+# @Time : 2021/8/20 下午4:55
 # @Author: yl
-# @File: train_fit.py
+# @File: offline_train_fit.py
 
 import pickle
 
 from ocr.rec.model.recognizers import build_recognizer
 from ocr.rec.model.losses import build_loss
-from ocr.rec.model.converters import build_converter
 from ocr.rec.core.evaluation import build_metric
-from ocr.rec.model.backbones.resnet2 import build_model
-from ocr.rec.data.online_dataset import OnlineDataSetV2, DatasetBuilder
+from ocr.rec.data.offline_dataset import  OfflineDataSet,DatasetBuilder
 import tensorflow as tf
-# from tensorflow import keras
 import tensorflow.keras as keras
 import os
-import time
 
 recognizer_config = dict(
     model=dict(type='CRNNNet',
@@ -63,22 +59,11 @@ if __name__ == '__main__':
 
     recognizer_config['converter']['char_idx_dict'] = char_idx_dict
 
-    strings_path = "data/wiki_corpus.pkl"
-    with open(strings_path, 'rb') as f:
-        strings = pickle.load(f)
+    dataset = OfflineDataSet(char_idx_dict, max_sequence_len=32, img_path=['../spark-ai-summit-2020-text-extraction/mjsynth_sample', ], lab_path=['../spark-ai-summit-2020-text-extraction/mjsynth.txt'])
+    data_loader = DatasetBuilder(char_idx_dict, generator=dataset, img_shape=(32, 320, 3))
 
-    font_root = "trdg/fonts/"
-    font_type = ['cn', 'latin']
-    fonts = {}
-    for type in font_type:
-        ttfs = os.listdir(os.path.join(font_root, type))
-        fonts_list = [os.path.join(font_root, type, ttf) for ttf in ttfs]
-        fonts[type] = fonts_list
-    dataset = OnlineDataSetV2(char_idx_dict, strings, max_sequence_len=32, fonts=fonts, bg_image_dir='data/crop_debug')
+    data_loader = data_loader(16, True)
 
-    dataset = DatasetBuilder(char_idx_dict, generator=dataset)
-
-    data_loader = dataset(8, True)
     batch_size = recognizer_config['train_cfg']['batch_per_card']
     # strategy = tf.distribute.MirroredStrategy()
     # batch_size = recognizer_config['train_cfg']['batch_size_per_card'] * strategy.num_replicas_in_sync
@@ -114,7 +99,7 @@ if __name__ == '__main__':
         keras.callbacks.ModelCheckpoint("my_model/result", save_weights_only=True),
     ]
     model.fit(data_loader,
-              steps_per_epoch=100,
+              steps_per_epoch=1000,
               epochs=100,
               callbacks=callbacks,
               )

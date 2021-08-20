@@ -66,7 +66,7 @@ class NormEditDistance(keras.metrics.Metric):
             inputs=tf.transpose(y_pred, perm=[1, 0, 2]),
             sequence_length=logit_length)
 
-        sum_distance = tf.math.reduce_sum(tf.edit_distance(decoded[0], y_true, normalize=True))
+        sum_distance = tf.math.reduce_sum(tf.edit_distance(tf.cast(decoded[0],tf.int32), y_true, normalize=True))
         batch_size = tf.cast(batch_size, tf.float32)
 
         self.sum_distance.assign_add(sum_distance)

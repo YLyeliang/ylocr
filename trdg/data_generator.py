@@ -299,7 +299,7 @@ class FakeTextDataGenerator(object):
             final_mask = final_mask.rotate(90, expand=True)
 
         # Image augmentation
-        final_image = img_aug(final_image)
+        # final_image = img_aug(final_image)
 
         #####################################
         # Generate name for resulting image #

@@ -5,6 +5,8 @@
 
 import pickle
 
+import keras.callbacks
+
 from ocr.rec.model.recognizers import build_recognizer
 from ocr.rec.model.losses import build_loss
 from ocr.rec.model.converters import build_converter
@@ -12,8 +14,7 @@ from ocr.rec.core.evaluation import build_metric
 from ocr.rec.model.backbones.resnet2 import build_model
 from ocr.rec.data.online_dataset import OnlineDataSetV2, DatasetBuilder
 import tensorflow as tf
-# from tensorflow import keras
-import tensorflow.keras as keras
+from tensorflow import keras
 import os
 import time
 
@@ -24,8 +25,7 @@ recognizer_config = dict(
                ),
                encoder=None,
                decoder=dict(
-                   type='SequenceDecoder',
-                   decoder_type='rnn',
+                   type='StepDecoder',
                    num_classes=None,
                ),
                ),
@@ -43,9 +43,15 @@ recognizer_config = dict(
     metric=[
         dict(type='LineAcc'), dict(type='NormEditDistance')],
     train_cfg=dict(
-        batch_per_card=4,
+        batch_per_card=2,
     )
 )
+
+
+def data_generator(data_loader):
+    for train, label in data_loader:
+        yield (train, label)
+
 
 if __name__ == '__main__':
 
@@ -93,7 +99,7 @@ if __name__ == '__main__':
     x = tf.keras.layers.Input(shape=(32, 320, 3), batch_size=None)
     output = model(x)
     model = keras.Model(inputs=x, outputs=output)
-    # model = build_model(len(char_idx_dict)+1)
+    # model = build_model(6625)
     # model = keras.Model(inputs=x, outputs=output)
     # converter = build_converter(recognizer_config['converter'])
 
@@ -111,10 +117,10 @@ if __name__ == '__main__':
     model.summary()
 
     callbacks = [
-        keras.callbacks.ModelCheckpoint("my_model/result", save_weights_only=True),
+        keras.callbacks.ModelCheckpoint("my_model", save_weights_only=True),
     ]
-    model.fit(data_loader,
-              steps_per_epoch=100,
+    model.fit(data_generator(data_loader),
+              steps_per_epoch=10000,
               epochs=100,
               callbacks=callbacks,
               )

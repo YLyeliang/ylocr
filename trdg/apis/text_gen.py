@@ -6,6 +6,7 @@ from ..data_generator import FakeTextDataGenerator
 import numpy as np
 from ..string_generator import create_strings_randomly
 from ..utils import text_content_gen, valid_char
+from utils.common import full_to_half
 
 
 class textImgGen:
@@ -64,10 +65,10 @@ class textImgGen:
 
         if random_num > 0.55:  # 简体
             text = text_content_gen(self.strings[np.random.randint(self.strings_num)],
-                                    self.char_idx_dict, flag='sim', count=(2, 25))
+                                    self.char_idx_dict, flag='sim', count=(2, 20))
         elif random_num > 0.45:  # 繁体
             text = text_content_gen(self.strings[np.random.randint(self.strings_num)],
-                                    self.char_idx_dict, flag='tra', count=(2, 25))
+                                    self.char_idx_dict, flag='tra', count=(2, 20))
         elif random_num > 0.25:  # 纯数字
             text = create_strings_randomly(2, allow_variable=True, count=1, let=False, num=True, sym=False, lang='en')
             text = "".join(text)
@@ -80,6 +81,7 @@ class textImgGen:
                                            lang='en')
             text = "".join(text)
         text = text.strip()  # 去除字符收尾两端的空格
+        text = full_to_half(text)  # 全角转半角
         # 判断字符是否都在字体里
         text = valid_char(text, font)
         return text, font
@@ -94,7 +96,7 @@ class textImgGen:
             blur=1,
             random_blur=True,
             background_type=np.random.choice([0, 1, 2, 3, 4], p=[0.1, 0.1, 0.1, 0.3, 0.4]),
-            distorsion_type=np.random.choice([0, 1, 2], p=[0.6, 0.2, 0.2]),  # 0: No 1: sin 2: cos
+            distorsion_type=0,  # 0: No 1: sin 2: cos
             distorsion_orientation=np.random.randint(2),  # 0: vertical 1: horizontal 2: both
             is_handwritten=False,
             name_format=0,

@@ -6,6 +6,7 @@
 数据统计：字符统计
 """
 
+import cv2
 import pickle
 from tqdm import tqdm
 
@@ -26,6 +27,20 @@ def CharFrequencyFromPkl(pkl_file, out_file=None):
             for key, val in char_fre.items():
                 f.write(f"{key}: {val}\n")
         print(len(char_fre.keys()))
+
+
+def aspect_ratio(img_path_list):
+    ratios = []
+    for img_path in img_path_list:
+        img = cv2.imread(img_path)
+        h, w, c = img.shape
+        ratio = w / h
+        ratios.append(ratio)
+
+    sorted(ratios)
+    return ratios
+
+# def
 
 
 if __name__ == '__main__':

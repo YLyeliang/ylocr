@@ -7,9 +7,11 @@ from ..backbones import build_backbone
 from ocr.rec.model.losses import build_loss
 from ..encoders import build_encoder
 from ..decoders import build_decoder
+from ..core.conv_utils import ConvBlock, BottleNeck
+from tensorflow.keras import layers
 
 
-class CRNNNet(keras.Model):
+class CRNNNet(object):
     def __init__(self,
                  backbone=dict(type='ResNet'),
                  encoder=None,
@@ -21,18 +23,43 @@ class CRNNNet(keras.Model):
         self.encoder = build_encoder(encoder) if encoder else None
 
         self.decoder = build_decoder(decoder)
-        if pretrained:
-            self.load_weights(pretrained, by_name=True, skip_mismatch=True)
+        # if pretrained:
+        #     self.load_weights(pretrained, by_name=True, skip_mismatch=True)
 
-    def call(self, x, training=None, mask=None):
-        x = self.backbone(x, training)
+    def __call__(self, x):
+        x = self.backbone(x)
         if self.encoder:
-            x = self.encoder(x, training)
-        output = self.decoder(x, training)
+            x = self.encoder(x)
+        output = self.decoder(x)
         return output
 
-    def forward_train(self, data, y_true):
-        y_pred = self(data)
-        # y_true, label_length = label['label'], label['label_length']
-        loss = self.loss(y_true, y_pred)
-        return y_pred, loss
+    # def forward_train(self, data, y_true):
+    #     y_pred = self(data)
+    # y_true, label_length = label['label'], label['label_length']
+    # loss = self.loss(y_true, y_pred)
+    # return y_pred, loss
+
+
+# def stem(input_tensor):
+#     x = layers.Conv2D(64, 3, strides=1, padding='same', activation='relu',
+#                       kernel_initializer='he_normal')(input_tensor)
+#     x = ConvBlock(x, 3, 64, strides=(2, 2), kernel_initializer='he_normal', act='relu', name='1')
+#     return x
+#
+#
+# def CRNN(input_tensor, num_classes=6625, filters=64, stage_blocks=[3, 4, 6, 3],
+#          strides=((1, 1), (2, 2), (2, 1), (2, 1)), dilations=(1, 1, 1, 1), act='relu'):
+#     x = stem(input_tensor)
+#     for l, strides in enumerate(strides):
+#         x = BottleNeck(x, 3, filters, stage=l + 2, block='a', dilation=dilations[l], strides=strides,
+#                        shortcut=True)
+#         for i in range(stage_blocks[l] - 1):
+#             x = BottleNeck(x, 3, filters, stage=l + 2, block=chr(ord('b') + i), dilation=dilations[l],
+#                            shortcut=False, act=act)
+#         filters *= 2
+#
+#     x = layers.Permute((2, 1, 3), name='permute')(x)
+#     x = layers.TimeDistributed(layers.Flatten(), name="flatten")(x)  # flatten h c into one channel
+#     x = layers.Dropout(rate=0.2)(x)
+#     y_pred = layers.TimeDistributed(layers.Dense(num_classes, input_shape=(None,)), name='fc')(x)
+#     return y_pred
