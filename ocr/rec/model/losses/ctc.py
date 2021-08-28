@@ -7,18 +7,42 @@ import tensorflow.keras as keras
 import tensorflow as tf
 
 
-class CTCLayer:
-    def __init__(self):
+# class CTCLayer:
+#     def __init__(self):
+#         self.loss_fn = keras.backend.ctc_batch_cost
+#
+#     def __call__(self, y_pred, y_true, label_length):
+#         # Compute the training-time losses value and add it
+#         # to the layer using `self.add_loss()`.
+#
+#         batch_len = tf.cast(tf.shape(y_true)[0], dtype="int64")
+#         input_length = tf.cast(tf.shape(y_pred)[1], dtype="int64")
+#
+#         input_length = input_length * tf.ones(shape=(batch_len, 1), dtype="int64")
+#
+#         loss = self.loss_fn(y_true, y_pred, input_length, label_length)
+#         # self.add_loss(loss)
+#
+#         # At test time, just return the computed predictions
+#         return loss
+
+class CTCLayer(keras.losses.Loss):
+
+    def __init__(self, name='ctc_loss'):
+        super().__init__(name=name)
         self.loss_fn = keras.backend.ctc_batch_cost
 
-    def __call__(self, y_pred, y_true, label_length):
+    def call(self, inputs, y_pred):
         # Compute the training-time losses value and add it
         # to the layer using `self.add_loss()`.
-
+        y_true = inputs["label"]
+        label_length = inputs["label_length"]
         batch_len = tf.cast(tf.shape(y_true)[0], dtype="int64")
         input_length = tf.cast(tf.shape(y_pred)[1], dtype="int64")
+        # label_length = tf.cast(tf.shape(y_true)[1], dtype="int64")
 
         input_length = input_length * tf.ones(shape=(batch_len, 1), dtype="int64")
+        # label_length = label_length * tf.ones(shape=(batch_len, 1), dtype="int64")
 
         loss = self.loss_fn(y_true, y_pred, input_length, label_length)
         # self.add_loss(loss)

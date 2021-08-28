@@ -31,7 +31,7 @@ from itertools import groupby
 image_paths = []
 image_texts = []
 
-data_folder = "mjsynth_sample"
+data_folder = "../spark-ai-summit-2020-text-extraction/mjsynth_sample"
 
 for path in os.listdir(data_folder):
     image_paths.append(data_folder + "/" + path)
@@ -283,7 +283,7 @@ def train(epochs):
                       # WandbCallback(monitor="val_loss",
                       #               mode="min",
                       #               log_weights=True),
-                      # PlotPredictions(frequency=1),
+                      PlotPredictions(frequency=1),
                       EarlyStopping(patience=3, verbose=1)]
 
     history = model.fit(train_dataset,

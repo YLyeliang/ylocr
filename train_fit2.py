@@ -16,7 +16,6 @@ from ocr.rec.data.online_dataset import OnlineDataSetV2, DatasetBuilder
 import tensorflow as tf
 from tensorflow import keras
 import os
-import time
 
 recognizer_config = dict(
     model=dict(type='CRNNNet',
@@ -25,7 +24,8 @@ recognizer_config = dict(
                ),
                encoder=None,
                decoder=dict(
-                   type='StepDecoder',
+                   type='SequenceDecoder',
+                   decoder_type='rnn',
                    num_classes=None,
                ),
                ),

@@ -75,7 +75,7 @@ class NormEditDistance(keras.metrics.Metric):
     def result(self):
         return 1 - self.sum_distance / self.total
 
-    def reset_states(self):
+    def reset_state(self):
         self.sum_distance.assign(0)
         self.total.assign(0)
 

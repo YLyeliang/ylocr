@@ -26,31 +26,25 @@ class BaseLabelConverter(object):
 
     def __init__(self,
                  char_idx_dict,
-                 character_type='cn',
-                 use_space_char=False,
-                 ignored_index=-1):
+                 character_type='ch',
+                 blank_index=-1):
 
         support_character_type = [
-            'cn', 'en', 'EN_symbol'
+            'ch', 'en', 'EN_symbol'
         ]
         assert character_type in support_character_type, f"Not supported character type: {character_type}"
 
         if character_type == "en":
-            self.character_str = "0123456789abcdefghijklmnopqrstuvwxyz"
-            dict_character = list(self.character_str)
+            self.character_str = "0123456789" + string.ascii_letters
         elif character_type == "EN_symbol":
             # same with ASTER setting (use 94 char).
             self.character_str = string.printable[:-6]
-            dict_character = list(self.character_str)
         elif character_type in support_character_type:
-            self.character_str = ""
-            for key, val in char_idx_dict.items():
-                self.character_str += key
-            if use_space_char and " " not in char_idx_dict:
-                self.character_str += " "
-            dict_character = list(self.character_str)
+            self.character_str = "".join(char_idx_dict.keys())
         else:
             raise NotImplementedError
+
+        dict_character = list(self.character_str)
 
         self.character_type = character_type
         dict_character = self.add_special_char(dict_character)  # 是否添加空字符
@@ -58,10 +52,10 @@ class BaseLabelConverter(object):
         for i, char in enumerate(dict_character):
             self.dict[char] = i
         self.character = dict_character
-        if ignored_index == -1:
-            self.ignored_index = len(self.dict) # 空白字符
+        if blank_index == -1:
+            self.blank_index = len(self.dict)  # 空白字符
         else:
-            self.ignored_index = ignored_index
+            self.blank_index = blank_index
 
     def add_special_char(self, dict_character):
         return dict_character
@@ -96,26 +90,27 @@ class BaseLabelConverter(object):
                 else:
                     conf_list.append(1)
             text = "".join(char_list)
+            if len(conf_list) == 0:
+                conf_list = [0, ]
             result_list.append((text, np.mean(conf_list)))
         return result_list
 
     def get_ignored_tokens(self):
-        return [self.ignored_index]  # for ctc blank
+        return [self.blank_index]  # for ctc blank
 
 
 class CTCLabelConverter(BaseLabelConverter):
     def __init__(self,
                  char_idx_dict=None,
-                 character_type='cn',
-                 use_space_char=False):
-        super(CTCLabelConverter, self).__init__(char_idx_dict, character_type, use_space_char)
+                 character_type='ch'):
+        super(CTCLabelConverter, self).__init__(char_idx_dict, character_type)
 
     def __call__(self, preds, label=None, *args, **kwargs):
         """
 
         Args:
-            preds:
-            label:
+            preds(tf.Tensor): with shape [N, T, C]
+            label(tf.Tensor): with shape [N, max_sequence_len]
             *args:
             **kwargs:
 
@@ -124,6 +119,8 @@ class CTCLabelConverter(BaseLabelConverter):
         """
         if isinstance(preds, tf.Tensor):
             preds = preds.numpy()
+        if isinstance(label, tf.Tensor):
+            label = label.numpy()
         preds_idx = preds.argmax(axis=-1)
         preds_prob = preds.max(axis=-1)
         text = self.index2str(preds_idx, preds_prob, is_remove_duplicate=True)

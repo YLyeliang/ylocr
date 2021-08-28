@@ -13,32 +13,38 @@ from tensorflow.keras import layers
 
 class CRNNNet(object):
     def __init__(self,
+                 img_shape,
                  backbone=dict(type='ResNet'),
                  encoder=None,
                  decoder=None,
                  pretrained=None):
         super(CRNNNet, self).__init__()
 
+        img_shape = [None if num == 'None' else num for num in img_shape]
+        self.img_shape = img_shape
+
         self.backbone = build_backbone(backbone)
         self.encoder = build_encoder(encoder) if encoder else None
 
         self.decoder = build_decoder(decoder)
+        self.pretrained = pretrained
         # if pretrained:
         #     self.load_weights(pretrained, by_name=True, skip_mismatch=True)
 
-    def __call__(self, x):
-        x = self.backbone(x)
+    def __call__(self):
+        inputs = keras.layers.Input(shape=self.img_shape, batch_size=None)
+        x = self.backbone(inputs)
         if self.encoder:
             x = self.encoder(x)
         output = self.decoder(x)
-        return output
+        model = keras.Model(inputs=inputs, outputs=output)
+        return model
 
     # def forward_train(self, data, y_true):
     #     y_pred = self(data)
     # y_true, label_length = label['label'], label['label_length']
     # loss = self.loss(y_true, y_pred)
     # return y_pred, loss
-
 
 # def stem(input_tensor):
 #     x = layers.Conv2D(64, 3, strides=1, padding='same', activation='relu',

@@ -51,7 +51,7 @@ class SequenceDecoder:
         num_classes:
     """
 
-    def __init__(self, decoder_type, hidden_size=256, num_classes=None):
+    def __init__(self, decoder_type, hidden_size=256, num_classes=None, training=True):
 
         super(SequenceDecoder, self).__init__()
         self.num_classes = num_classes
@@ -68,13 +68,19 @@ class SequenceDecoder:
                 decoder_type, support_decoder_dict.keys())
             self.decoder = support_decoder_dict[decoder_type](hidden_size)
             self.only_reshape = False
-        self.pred = layers.Dense(num_classes, name='dense')
+        self.pred = layers.Dense(num_classes, name='dense', activation='softmax')
+        # self.pred = layers.Dense(num_classes, name='dense')
+        # self.training = training
+        # if not self.training:
+        #     self.softmax = layers.Softmax()
 
     def __call__(self, x):
         x = self.decoder_reshape(x)
         if not self.only_reshape:
             x = self.decoder(x)
         pred = self.pred(x)
+        # if not self.training:
+        #     pred = self.softmax(pred)
         return pred
 
 
