@@ -34,6 +34,7 @@ class textImgGen:
             fonts=[],
             img_h=32,
             bg_image_dir=None,
+            bg_image_weight=[1, 1],
     ):
 
         self.img_h = img_h
@@ -48,6 +49,7 @@ class textImgGen:
         self.absolute_max_string_len = absolute_max_string_len
         self.generated_count = 0
         self.bg_image_dir = bg_image_dir
+        self.bg_image_weight = bg_image_weight
 
     def string_generate(self, fonts):
         """
@@ -56,8 +58,8 @@ class textImgGen:
         random_num = np.random.random()
         if random_num > 0.55:
             fonts = fonts['cn']
-        # elif random_num > 0.45:
-        #     fonts = fonts['font_tri']
+        elif random_num > 0.45:
+            fonts = fonts['cn_tra']
         else:
             fonts = fonts['cn'] + fonts['latin']
 
@@ -65,21 +67,24 @@ class textImgGen:
 
         if random_num > 0.55:  # 简体
             text = text_content_gen(self.strings[np.random.randint(self.strings_num)],
-                                    self.char_idx_dict, flag='sim', count=(2, 20))
+                                    self.char_idx_dict, flag='sim', count=(2, 25))
         elif random_num > 0.45:  # 繁体
             text = text_content_gen(self.strings[np.random.randint(self.strings_num)],
-                                    self.char_idx_dict, flag='tra', count=(2, 20))
+                                    self.char_idx_dict, flag='tra', count=(2, 25))
         elif random_num > 0.25:  # 纯数字
             text = create_strings_randomly(2, allow_variable=True, count=1, let=False, num=True, sym=False, lang='en')
             text = "".join(text)
+            self.gen_kwargs.update(dict(distorsion_type=0))
         elif random_num > 0.1:  # 纯字母
             text = create_strings_randomly(2, allow_variable=True, count=1, let=True, num=False, sym=False,
                                            lang='en')
             text = "".join(text)
+            self.gen_kwargs.update(dict(distorsion_type=0))
         else:  # 数字+字母+符号
             text = create_strings_randomly(2, allow_variable=True, count=1, let=True, num=True, sym=True,
                                            lang='en')
             text = "".join(text)
+            self.gen_kwargs.update(dict(distorsion_type=0))
         text = text.strip()  # 去除字符收尾两端的空格
         text = full_to_half(text)  # 全角转半角
         # 判断字符是否都在字体里

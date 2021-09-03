@@ -16,9 +16,8 @@ from ocr.rec.data import build_dataloader
 from ocr.rec.apis.train import train_recognizer
 
 import argparse
-from .program import mergeConfig, loadConfig, loadCharDict
-
-import logging
+from tools.program import mergeConfig, loadConfig, loadCharDict
+from utils.logger import initLogger
 
 
 def parse_args():
@@ -43,9 +42,14 @@ def main():
     device = args.pop("device")
     os.environ["CUDA_VISIBLE_DEVICES"] = device
     cfg = loadConfig(args.pop('config'))
-    debug = 1
+
     global_cfg = cfg["Global"]
-    # cfg = mergeConfig(cfg, args)
+    cfg = mergeConfig(cfg, args)
+
+    # build logger
+    if not os.path.exists(global_cfg['work_dir']):
+        os.makedirs(global_cfg['work_dir'])
+    logger = initLogger(global_cfg['work_dir'])
 
     # get char idx dict
     char_dict_path = global_cfg['char_dict_path']
@@ -56,13 +60,15 @@ def main():
     cfg['Train']['dataset']['char_idx_dict'] = char_idx_dict
     cfg['Eval']['dataset']['char_idx_dict'] = char_idx_dict
     # build train data_loader
-    train_data_loader = build_dataloader(cfg['Train'])
+    train_data_loader, train_length = build_dataloader(cfg['Train'])
+    cfg['train_length'] = train_length
 
     # build eval data_loader
     if args['no_validate']:
         eval_data_loader = None
     else:
-        eval_data_loader = build_dataloader(cfg["Eval"])
+        eval_data_loader, eval_length = build_dataloader(cfg["Eval"])
+        cfg['eval_length'] = eval_length
 
     # build model
     model_cfg = cfg['Model']
@@ -71,23 +77,25 @@ def main():
 
     model = build_recognizer(model_cfg)
     model = model()
+    if global_cfg['load_from']:
+        model.load_weights(global_cfg['load_from'])
 
     # build loss
     loss_fn = build_loss(cfg['Loss'])
 
     # build optimizer
-    optimizer = build_optimizer(cfg["Optimizer"])
+    optimizer, lr_scheduler = build_optimizer(cfg["Optimizer"])
 
     # build converter
     cfg['Converter']['char_idx_dict'] = char_idx_dict
+    cfg['Converter']['idx_char_dict'] = idx_char_dict
     converter = build_converter(cfg["Converter"])
 
     # build metric
     metrics = build_metric(cfg["Metric"])
 
-    debug = 1
-    train_recognizer(model, train_data_loader, eval_data_loader, loss_fn, optimizer, converter, metrics, cfg,
-                     no_validate=args["no_validate"])
+    train_recognizer(model, train_data_loader, eval_data_loader, loss_fn, optimizer, lr_scheduler, converter, metrics,
+                     cfg, no_validate=args["no_validate"], logger=logger)
 
 
 if __name__ == '__main__':

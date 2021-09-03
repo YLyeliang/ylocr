@@ -54,7 +54,8 @@ def mergeConfig(cfg, dicts):
     global_cfg = cfg["Global"]
     new_global_cfg = global_cfg.copy()
     for key, val in dicts.items():
-        new_global_cfg.update({key: val})
+        if val:
+            new_global_cfg.update({key: val})
     cfg['Global'] = new_global_cfg
     return cfg
 

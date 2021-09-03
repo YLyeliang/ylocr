@@ -4,11 +4,9 @@
 # @File: simple_dataset.py
 
 import tensorflow as tf
-import tensorflow.keras as keras
 import numpy as np
-import cv2
 import os
-import codecs
+from tqdm import tqdm
 
 try:
     AUTOTUNE = tf.data.AUTOTUNE
@@ -24,6 +22,7 @@ class SimpleDataset(object):
                  blank_index=-1,
                  img_paths=[],
                  lab_paths=[],
+                 filter_shape=None,
                  max_sequence_len=32):
         self.char_idx_dict = char_idx_dict
 
@@ -36,6 +35,8 @@ class SimpleDataset(object):
             self.blank_label = self.num_classes - 1
         else:
             self.blank_label = blank_index
+
+        self.filter_shape = filter_shape
 
         self.img_paths = img_paths
         self.lab_paths = lab_paths
@@ -66,10 +67,12 @@ class SimpleDataset(object):
         for i, label_txt in enumerate(label_list):
             with open(label_txt, 'r') as f:
                 lines = f.readlines()
-            for line in lines:
+            for line in tqdm(lines):
                 img_name, label = line.rstrip('\n').split('\t')
                 flag = False
                 encoded_label = np.full((self.max_sequence_len), fill_value=self.blank_label, dtype=np.int32)
+                if len(label) > self.max_sequence_len:
+                    continue
                 for j, char in enumerate(label):
                     if char not in char_idx_dict:
                         flag = True
@@ -94,7 +97,7 @@ class SimpleDataset(object):
         img = tf.io.read_file(img_path)
 
         # 2. Decode
-        img = tf.io.decode_jpeg(img, channels=3)
+        img = tf.io.decode_jpeg(img, channels=self.img_shape[2])
 
         if self.keep_aspect_ratio:
             img_shape = tf.shape(img)  # h w c
@@ -115,8 +118,6 @@ class SimpleDataset(object):
     def __call__(self, batch_per_card, shuffle, drop_remainder, num_workers):
 
         num_workers = num_workers if num_workers else AUTOTUNE
-        # ds = tf.data.Dataset.from_tensor_slices(
-        #     {"input": self.img_list, "label": self.lab_list, "label_length": self.lab_len_list})
         ds = tf.data.Dataset.from_tensor_slices(
             (self.img_list, self.lab_list, self.lab_len_list))
         ds = tf.data.Dataset.range(1).interleave(
@@ -129,11 +130,12 @@ class SimpleDataset(object):
         ds = ds.map(self.preprocess, num_workers)  # pre-process
         if self.keep_aspect_ratio and batch_per_card != 1:
             # ds = ds.filter(self._filter_img)  # filter
-            ds = ds.padded_batch(batch_per_card, padded_shapes=((32, self.img_shape[1], 3), (None,), (None,)),
+            ds = ds.padded_batch(batch_per_card,
+                                 padded_shapes=((32, self.img_shape[1], self.img_shape[2]), (None,), (None,)),
                                  drop_remainder=drop_remainder)  # padded
         else:
             ds = ds.batch(batch_per_card)
         ds = ds.map(lambda x, y, z: {"input": x, "label": y, "label_length": z}, num_workers)
         # ds = ds.map(self._tokenize, AUTOTUNE)
-        ds.prefetch(num_workers)
-        return ds
+        ds.prefetch(AUTOTUNE)
+        return ds, len(self.img_list) // batch_per_card

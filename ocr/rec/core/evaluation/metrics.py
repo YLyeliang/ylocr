@@ -66,6 +66,7 @@ class RecMetric(object):
                 all_line += 1
 
         self.correct_line += correct_line
+        self.correct_char += correct_char
         self.all_line += all_line
         self.all_char += all_char
         self.norm_edit_dis += norm_edit_dis

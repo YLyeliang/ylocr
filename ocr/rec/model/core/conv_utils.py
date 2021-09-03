@@ -116,15 +116,15 @@ Activations = {"relu": layers.Activation(tf.nn.relu),
 def BasicBlock(input_tensor, kernel_size, filters, stage, block, dilation=(1, 1), strides=(1, 1), shortcut=True,
                act="relu"):
     name = 'res' + str(stage) + block + "_"
-    x = ConvBlock(input_tensor, kernel_size, filters , strides, dilation, padding='same',
+    x = ConvBlock(input_tensor, kernel_size, filters, strides, dilation, padding='same',
                   kernel_initializer='he_normal',
                   act=act,
                   name=name + "2a")
-    x = ConvBlock(x, kernel_size, filters , dilation=dilation, padding='same', kernel_initializer='he_normal',
+    x = ConvBlock(x, kernel_size, filters, dilation=dilation, padding='same', kernel_initializer='he_normal',
                   act=None,
                   name=name + "2b")
     if shortcut:
-        shortcut = ConvBlock(input_tensor, 1, filters , strides, dilation, padding='same', act=None,
+        shortcut = ConvBlock(input_tensor, 1, filters, strides, dilation, padding='same', act=None,
                              name=name + "1")
     else:
         shortcut = input_tensor
@@ -150,7 +150,7 @@ def BottleNeck(input_tensor, kernel_size, filters, stage, block, dilation=(1, 1)
         shortcut = input_tensor
 
     x = layers.add([x, shortcut])
-    x = layers.Activation('relu')(x)
+    x = layers.Activation(act)(x)
     return x
 
 
@@ -158,11 +158,11 @@ def ConvBlock(input_tensor, kernel_size, filters, strides=(1, 1), dilation=(1, 1
               kernel_initializer='glorot_uniform', act='relu', name=""):
     conv_name = name + "_conv"
     bn_name = name + "_bn"
-    x = layers.Conv2D(filters, kernel_size, strides, padding=padding, dilation_rate=dilation,
+    x = layers.Conv2D(filters, kernel_size, strides, padding=padding, dilation_rate=dilation, use_bias=False,
                       kernel_initializer=kernel_initializer, name=conv_name)(input_tensor)
     x = BatchNormalization(axis=-1, name=bn_name)(x)
     if act:
-        x = layers.Activation('relu')(x)
+        x = layers.Activation(act)(x)
     return x
 
 # def ResBlock(input_tensor,kernel_size,filters,stage,block)

@@ -3,7 +3,7 @@
 # @Author: yl
 # @File: optimizer.py
 
-
 from tensorflow.keras import optimizers
 
-
+Adam = optimizers.Adam
+SGD = optimizers.SGD

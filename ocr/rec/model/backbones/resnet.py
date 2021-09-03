@@ -71,10 +71,10 @@ class ResNetV2(ResNet):
                  dilations=(1, 1, 1, 1),
                  max_pool_first=True,
                  max_pool_last=True,
+
                  act='relu'):
         super(ResNetV2, self).__init__(depth=depth, stem_channels=stem_channels, strides=strides, dilations=dilations,
                                        act=act)
-
         self.block, stage_blocks = self.arch_settings[depth]
         self.stage_blocks = stage_blocks
 
@@ -94,8 +94,8 @@ class ResNetV2(ResNet):
 
     def make_stem(self, stem_channels):
         def stem(input_tensor):
-            x = ConvBlock(input_tensor, 3, stem_channels, strides=1, kernel_initializer="he_normal", act='relu',
-                          name='1')
+            x = ConvBlock(input_tensor, 3, stem_channels, strides=1, kernel_initializer="he_normal",
+                          act='relu',name='1')
             x = ConvBlock(x, 3, stem_channels, strides=1, kernel_initializer='he_normal', act='relu', name='2')
             return x
 

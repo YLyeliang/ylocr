@@ -111,6 +111,7 @@ class OnlineDataSetV2:
                  fonts,
                  bg_image_dir,
                  img_size=(32, 320, 3),
+                 bg_image_weight=[1, 1],
                  blank_index=-1,
                  ):
         """
@@ -130,7 +131,7 @@ class OnlineDataSetV2:
         self.max_sequence_len = max_sequence_len
         self.generator = textImgGen(img_h=img_size[0], char_idx_dict=char_idx_dict,
                                     strings=strings, absolute_max_string_len=max_sequence_len, fonts=fonts,
-                                    bg_image_dir=bg_image_dir)
+                                    bg_image_dir=bg_image_dir, bg_image_weight=bg_image_weight)
 
     def next_single(self):
         while True:

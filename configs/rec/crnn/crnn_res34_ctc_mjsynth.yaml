@@ -1,0 +1,83 @@
+Global:
+  epoch_num: 20
+  log_iter_step: 10
+  work_dir: work_dirs/crnn_res34_ctc_mjsynth
+  save_epoch_step: 1
+  eval_iter_step: 2000
+  cal_metric_during_train: True
+  load_from:
+  # ../utils/ppocr_keys_v1.txt
+  char_dict_path:
+  resume_from:
+  character_type: en
+  max_sequence_length: 32
+  use_space_char: True
+  no_validate: False
+
+Model:
+  type: CRNNNet
+  img_shape: [ 32, None,1 ] # for compute Graph
+  backbone:
+    type: ResNetV2
+    depth: 34
+    act: selu
+    strides: [ [ 1,1 ],[ 2,1 ],[ 2,1 ],[ 2,1 ] ]
+  encoder:
+  decoder:
+    type: SequenceDecoder
+    decoder_type: reshape
+
+Loss:
+  type: CTCLayer
+
+Optimizer:
+  type: Adam
+  beta_1: 0.9
+  beta_2: 0.999
+  #  clipvalue: 5.0
+  clipnorm: 1.0
+  #  decay: 0.0001
+
+  lr:
+    type: Cosine
+    initial_learning_rate: 0.001
+    decay_steps: 50000
+    # only one of both can be set
+
+#    clipvalue: 5.0
+
+Converter:
+  type: CTCLabelConverter
+  character_type: ch
+
+Metric:
+  type: RecMetric
+  keys: [ "line_acc" , "norm_edit_dis" ]
+
+Train:
+  dataset:
+    type: SimpleDataset
+    keep_aspect_ratio: True
+    img_paths: [ '../spark-ai-summit-2020-text-extraction/mjsynth_sample', ]
+    lab_paths: [ '../spark-ai-summit-2020-text-extraction/mjsynth.txt' , ]
+    img_shape: [ 32,128,1 ] # will padded 0 to get batch with this shape
+  #    KeepKeys: [ 'input','label','label_length' ]
+  loader:
+    shuffle: True
+    batch_per_card: 128
+    drop_remainder: True
+    num_workers: 6
+
+Eval:
+  dataset:
+    type: SimpleDataset
+    keep_aspect_ratio: True
+    img_paths: [ '../spark-ai-summit-2020-text-extraction/mjsynth_sample', ]
+    lab_paths: [ '../spark-ai-summit-2020-text-extraction/mjsynth_eval.txt' , ]
+    img_shape: [ 32,128,1 ]
+  #    KeepKeys: [ 'input','label','label_length' ]
+  loader:
+    shuffle: True
+    batch_per_card: 128
+    drop_remainder: True
+    num_workers: 6  # 0 means AUTOTUNE

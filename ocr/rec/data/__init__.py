@@ -21,5 +21,5 @@ def build_dataloader(config):
     loader = config["loader"]
 
     dataset = build_dataset(dataset_cfg)
-    data_loader = dataset(**loader)
-    return data_loader
+    data_loader, data_length = dataset(**loader)
+    return data_loader, data_length

@@ -26,6 +26,7 @@ class BaseLabelConverter(object):
 
     def __init__(self,
                  char_idx_dict,
+                 idx_char_dict,
                  character_type='ch',
                  blank_index=-1):
 
@@ -34,26 +35,14 @@ class BaseLabelConverter(object):
         ]
         assert character_type in support_character_type, f"Not supported character type: {character_type}"
 
-        if character_type == "en":
-            self.character_str = "0123456789" + string.ascii_letters
-        elif character_type == "EN_symbol":
-            # same with ASTER setting (use 94 char).
-            self.character_str = string.printable[:-6]
-        elif character_type in support_character_type:
-            self.character_str = "".join(char_idx_dict.keys())
-        else:
-            raise NotImplementedError
-
-        dict_character = list(self.character_str)
+        self.char_idx_dict = char_idx_dict
+        self.idx_char_dict = idx_char_dict
 
         self.character_type = character_type
-        dict_character = self.add_special_char(dict_character)  # 是否添加空字符
-        self.dict = {}
-        for i, char in enumerate(dict_character):
-            self.dict[char] = i
-        self.character = dict_character
+        # dict_character = self.add_special_char(dict_character)  # 是否添加空字符
+        # self.character = dict_character
         if blank_index == -1:
-            self.blank_index = len(self.dict)  # 空白字符
+            self.blank_index = len(self.char_idx_dict)  # 空白字符
         else:
             self.blank_index = blank_index
 
@@ -84,7 +73,7 @@ class BaseLabelConverter(object):
                     # only for predict
                     if idx > 0 and text_index[batch_idx][idx - 1] == text_index[batch_idx][idx]:
                         continue
-                char_list.append(self.character[int(text_index[batch_idx][idx])])
+                char_list.append(self.idx_char_dict[int(text_index[batch_idx][idx])])
                 if text_prob is not None:
                     conf_list.append(text_prob[batch_idx][idx])
                 else:
@@ -102,8 +91,9 @@ class BaseLabelConverter(object):
 class CTCLabelConverter(BaseLabelConverter):
     def __init__(self,
                  char_idx_dict=None,
+                 idx_char_dict=None,
                  character_type='ch'):
-        super(CTCLabelConverter, self).__init__(char_idx_dict, character_type)
+        super(CTCLabelConverter, self).__init__(char_idx_dict, idx_char_dict, character_type)
 
     def __call__(self, preds, label=None, *args, **kwargs):
         """
