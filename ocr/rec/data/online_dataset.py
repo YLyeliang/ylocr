@@ -9,7 +9,10 @@ import cv2
 from trdg.apis.text_gen import textImgGen
 import tensorflow as tf
 
-AUTOTUNE = tf.data.AUTOTUNE
+try:
+    AUTOTUNE = tf.data.AUTOTUNE
+except:
+    AUTOTUNE = tf.data.experimental.AUTOTUNE
 
 
 class OnlineDataSet:

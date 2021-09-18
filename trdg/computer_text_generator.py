@@ -15,6 +15,7 @@ def generate(
         word_split,
         stroke_width=0,
         stroke_fill="#282828",
+        random_alpha=True,
         max_width=640,
 ):
     if orientation == 0:
@@ -29,12 +30,13 @@ def generate(
             word_split,
             stroke_width,
             stroke_fill,
+            random_alpha,
             max_width
         )
     elif orientation == 1:
         return _generate_vertical_text(
             text, font, text_color, font_size, space_width, character_spacing, fit,
-            stroke_width, stroke_fill, max_width
+            stroke_width, stroke_fill, random_alpha, max_width
         )
     else:
         raise ValueError("Unknown orientation " + str(orientation))
@@ -42,7 +44,7 @@ def generate(
 
 def _generate_horizontal_text(
         text, font, text_color, font_size, space_width, character_spacing, fit, word_split,
-        stroke_width=0, stroke_fill="#282828", max_width=640
+        stroke_width=0, stroke_fill="#282828", random_alpha=True, max_width=640
 ):
     image_font = ImageFont.truetype(font=font, size=font_size)
     # 空格宽度
@@ -85,11 +87,11 @@ def _generate_horizontal_text(
     text_height = max([image_font.getsize(p)[1] for p in splitted_text])
 
     txt_img = Image.new("RGBA", (text_width, text_height), (0, 0, 0, 0))
-    txt_mask = Image.new("RGB", (text_width, text_height), (0, 0, 0))
+    # txt_mask = Image.new("RGB", (text_width, text_height), (0, 0, 0))
 
     txt_img_draw = ImageDraw.Draw(txt_img)
-    txt_mask_draw = ImageDraw.Draw(txt_mask, mode="RGB")
-    txt_mask_draw.fontmode = "1"
+    # txt_mask_draw = ImageDraw.Draw(txt_mask, mode="RGB")
+    # txt_mask_draw.fontmode = "1"
 
     stroke_colors = [ImageColor.getrgb(c) for c in stroke_fill.split(",")]
     stroke_c1, stroke_c2 = stroke_colors[0], stroke_colors[-1]
@@ -99,34 +101,41 @@ def _generate_horizontal_text(
         rnd.randint(min(stroke_c1[1], stroke_c2[1]), max(stroke_c1[1], stroke_c2[1])),
         rnd.randint(min(stroke_c1[2], stroke_c2[2]), max(stroke_c1[2], stroke_c2[2])),
     )
+    if random_alpha:
+        alpha = rnd.randint(80, 230)
+    else:
+        alpha = 255
 
     for i, p in enumerate(splitted_text):
         txt_img_draw.text(
             (sum(piece_widths[0:i]) + i * character_spacing * int(not word_split), 0),
             p,
-            fill=text_color,
+            fill=(*text_color, alpha),
+            # fill=text_color,
             font=image_font,
-            stroke_width=stroke_width,
-            stroke_fill=stroke_fill,
+            stroke_width=stroke_width,  # 笔画宽度
+            # stroke_fill=stroke_fill,
+            stroke_fill=(*stroke_fill, alpha),
         )
-        txt_mask_draw.text(
-            (sum(piece_widths[0:i]) + i * character_spacing * int(not word_split), 0),
-            p,
-            fill=((i + 1) // (255 * 255), (i + 1) // 255, (i + 1) % 255),
-            font=image_font,
-            stroke_width=stroke_width,
-            stroke_fill=stroke_fill,
-        )
+        # txt_mask_draw.text(
+        #     (sum(piece_widths[0:i]) + i * character_spacing * int(not word_split), 0),
+        #     p,
+        #     fill=((i + 1) // (255 * 255), (i + 1) // 255, (i + 1) % 255),
+        #     font=image_font,
+        #     stroke_width=stroke_width,
+        #     stroke_fill=stroke_fill,
+        # )
 
     if fit:
-        return txt_img.crop(txt_img.getbbox()), txt_mask.crop(txt_img.getbbox()), text
+        # return txt_img.crop(txt_img.getbbox()), txt_mask.crop(txt_img.getbbox()), text
+        return txt_img.crop(txt_img.getbbox()),text
     else:
-        return txt_img, txt_mask, text
+        return txt_img, text
 
 
 def _generate_vertical_text(
         text, font, text_color, font_size, space_width, character_spacing, fit,
-        stroke_width=0, stroke_fill="#282828", max_width=640
+        stroke_width=0, stroke_fill="#282828", random_alpha=True, max_width=640
 ):
     image_font = ImageFont.truetype(font=font, size=font_size)
 
@@ -152,10 +161,10 @@ def _generate_vertical_text(
     text_height = sum(char_heights) + character_spacing * len(text)
 
     txt_img = Image.new("RGBA", (text_width, text_height), (0, 0, 0, 0))
-    txt_mask = Image.new("RGBA", (text_width, text_height), (0, 0, 0, 0))
+    # txt_mask = Image.new("RGBA", (text_width, text_height), (0, 0, 0, 0))
 
     txt_img_draw = ImageDraw.Draw(txt_img)
-    txt_mask_draw = ImageDraw.Draw(txt_mask)
+    # txt_mask_draw = ImageDraw.Draw(txt_mask)
 
     stroke_colors = [ImageColor.getrgb(c) for c in stroke_fill.split(",")]
     stroke_c1, stroke_c2 = stroke_colors[0], stroke_colors[-1]
@@ -166,25 +175,31 @@ def _generate_vertical_text(
         rnd.randint(stroke_c1[2], stroke_c2[2]),
     )
 
+    if random_alpha:
+        alpha = rnd.randint(80, 255)
+    else:
+        alpha = 255
+
     for i, c in enumerate(text):
         txt_img_draw.text(
             (0, sum(char_heights[0:i]) + i * character_spacing),
             c,
-            fill=text_color,
+            fill=(*text_color, alpha),
             font=image_font,
             stroke_width=stroke_width,
-            stroke_fill=stroke_fill,
+            stroke_fill=(*stroke_fill, alpha),
         )
-        txt_mask_draw.text(
-            (0, sum(char_heights[0:i]) + i * character_spacing),
-            c,
-            fill=(i // (255 * 255), i // 255, i % 255),
-            font=image_font,
-            stroke_width=stroke_width,
-            stroke_fill=stroke_fill,
-        )
+        # txt_mask_draw.text(
+        #     (0, sum(char_heights[0:i]) + i * character_spacing),
+        #     c,
+        #     fill=(i // (255 * 255), i // 255, i % 255),
+        #     font=image_font,
+        #     stroke_width=stroke_width,
+        #     stroke_fill=stroke_fill,
+        # )
 
     if fit:
-        return txt_img.crop(txt_img.getbbox()), txt_mask.crop(txt_img.getbbox()), text
+        # return txt_img.crop(txt_img.getbbox()), txt_mask.crop(txt_img.getbbox()), text
+        return txt_img.crop(txt_img.getbbox()),text
     else:
-        return txt_img, txt_mask, text
+        return txt_img,text

@@ -7,6 +7,7 @@ import os
 import numpy as np
 from hanziconv import HanziConv
 from fontTools.ttLib import TTFont
+import pickle
 
 
 def load_dict(lang):
@@ -44,6 +45,13 @@ def load_fonts(lang):
         ]
 
 
+def read_sentence(pkl_path):
+    if os.path.exists(pkl_path):
+        with open(pkl_path, 'rb') as file:
+            sentence_list = pickle.load(file)
+    return sentence_list
+
+
 def valid_sentence(string, char_idx_dict):
     """
     消除不在词库里的字符
@@ -72,3 +80,16 @@ def text_content_gen(text, char_idx_dict, flag, count=(1, 30)):
         return valid_text
     start = np.random.randint(len(valid_text) - text_len)
     return valid_text[start:start + text_len]
+
+
+def full_to_half(string):
+    half_str = ""
+    for uchar in string:
+        inside_code = ord(uchar)
+        if inside_code == 12288:
+            inside_code = 32
+        elif 65281 <= inside_code <= 65374:
+            inside_code -= 65248
+        uchar = chr(inside_code)
+        half_str += uchar
+    return half_str

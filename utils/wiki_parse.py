@@ -7,6 +7,8 @@
 """
 import os
 import pickle
+import time
+
 from tqdm import tqdm
 
 out_file = "../data/wiki_corpus.pkl"
@@ -34,14 +36,38 @@ def parse_wiki():
     fw.close()
 
 
+def filter_pkl(src, out):
+    """
+    对语料u
+    Returns:
+
+    """
+    fw = open(out, 'wb')
+    all_lines = []
+    with open(src, 'rb') as f:
+        data = pickle.load(f)
+    for line in tqdm(data):
+        if len(line) < 5 or len(line) > 30:
+            continue
+        else:
+            all_lines.append(line)
+    pickle.dump(all_lines, fw)
+    fw.close()
+
+
 def read_pkl():
     with open(out_file, 'rb') as f:
         dat = pickle.load(f)
 
+    char = "鹿晗"
+    index = dat.index(char)
+    lists = dat[index:index+1000]
+    flag = char in dat
     debug = 1
+    return dat
 
 
 if __name__ == '__main__':
     # parse_wiki()
-    read_pkl()
-# pickle.dump(lines, fw)
+    data = read_pkl()
+    # filter_pkl(out_file, '../data/wiki_corpus_filter.pkl')

@@ -77,10 +77,13 @@ def plain_color(height, width, bg_color):
     return Image.fromarray(image, mode='RGB').convert("RGBA")
 
 
-def image(height, width, pic):
+def image(height, width, pic, direct_resize=True):
     """
         Create a background with a image
     """
+    if direct_resize:
+        pic = pic.resize([width, height], Image.ANTIALIAS)
+        return pic
 
     if pic.size[0] < width:
         pic = pic.resize(
