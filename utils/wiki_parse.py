@@ -55,7 +55,7 @@ def filter_pkl(src, out):
     fw.close()
 
 
-def read_pkl():
+def read_pkl(out_file):
     with open(out_file, 'rb') as f:
         dat = pickle.load(f)
 
@@ -69,5 +69,5 @@ def read_pkl():
 
 if __name__ == '__main__':
     # parse_wiki()
-    data = read_pkl()
+    data = read_pkl('../data/tianchi_corpus.pkl')
     # filter_pkl(out_file, '../data/wiki_corpus_filter.pkl')

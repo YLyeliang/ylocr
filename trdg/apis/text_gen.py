@@ -8,7 +8,7 @@ import random
 from ..data_generator import FakeTextDataGenerator
 import numpy as np
 from ..string_generator import create_strings_randomly
-from ..utils import text_content_gen,full_to_half
+from ..utils import text_content_gen, full_to_half
 from fontTools.ttLib import TTFont
 
 
@@ -34,16 +34,20 @@ class textImgGen:
             char_idx_dict,
             strings,
             absolute_max_string_len,
+            extra_strings=None,
             fonts=[],
             img_h=32,
             bg_image_dir=None,
             bg_image_weight=[1, 1],
+            seed=None,
     ):
 
         self.img_h = img_h
         self.char_idx_dict = char_idx_dict
         self.chars = list(self.char_idx_dict.keys())
         self.strings = strings
+        self.extra_strings = extra_strings
+        self.extra_strings_num = len(extra_strings) if extra_strings else 0
         self.strings_num = len(strings)
         self.fonts = fonts
         self.fonts_num = len(fonts)
@@ -56,6 +60,9 @@ class textImgGen:
         assert len(bg_image_dir) == len(bg_image_weight)
         self.cache_bg_image_list()
         self.fonts_dict = {}
+        if seed:
+            np.random.seed(seed)
+            random.seed(seed)
 
     def cache_bg_image_list(self):
         bg_image_lists = []
@@ -81,10 +88,14 @@ class textImgGen:
 
         if random_num > 0.4:  # 简体
             random_num2 = random.random()
-            if random_num2 > 0.2:
+            if random_num2 > 0.6:
                 string = self.strings[random.randint(0, self.strings_num - 1)]
                 while len(string) < 10:
                     string += self.strings[random.randint(0, self.strings_num - 1)]
+            elif random_num2 > 0.2 and self.extra_strings:
+                string = self.extra_strings[random.randint(0, self.extra_strings_num - 1)]
+                while len(string) < 10:
+                    string += self.extra_strings[random.randint(0, self.extra_strings_num - 1)]
             else:
                 string = "".join(random.sample(self.chars, 15))
 

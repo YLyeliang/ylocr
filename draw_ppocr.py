@@ -93,10 +93,10 @@ def draw_ocr_box_txt(image,
                 box[2][1], box[3][0], box[3][1]
             ],
             outline=color)
-        box_height = math.sqrt((box[0][0] - box[3][0])**2 + (box[0][1] - box[3][
-            1])**2)
-        box_width = math.sqrt((box[0][0] - box[1][0])**2 + (box[0][1] - box[1][
-            1])**2)
+        box_height = math.sqrt((box[0][0] - box[3][0]) ** 2 + (box[0][1] - box[3][
+            1]) ** 2)
+        box_width = math.sqrt((box[0][0] - box[1][0]) ** 2 + (box[0][1] - box[1][
+            1]) ** 2)
         if box_height > 2 * box_width:
             font_size = max(int(box_width * 0.9), 10)
             font = ImageFont.truetype(font_path, font_size, encoding="utf-8")
@@ -243,17 +243,18 @@ def draw_boxes(image, boxes, scores=None, drop_score=0.5):
 
 if __name__ == '__main__':
     from tqdm import tqdm
-    img_dir = 'data/recovery4/'
-    txt_dir = 'data/recovery4_0918_new_szf_txt'
-    save_dir = 'data/recovery4_0918_new_szf_show'
-    # img_dir = 'data/test_tb_xiaopiao'
-    # txt_dir = 'data/test_tb_xiaopiao_txt'
-    # save_dir = 'data/test_tb_xiaopiao_show'
+
+    # img_dir = 'data/recovery4/'
+    # txt_dir = 'data/recovery4_0918_new_szf_txt'
+    # save_dir = 'data/recovery4_0918_new_szf_show'
+    img_dir = 'data/test_tb_xiaopiao'
+    txt_dir = 'data/test_tb_0929_epoch40_conf36_txt'
+    save_dir = 'data/test_tb_0929_epoch40_conf36_75_show'
     os.makedirs(save_dir, exist_ok=True)
     txt_list = os.listdir(txt_dir)
 
     for txt_name in tqdm(txt_list):
-        img_name = txt_name[:-4]+'.jpg'
+        img_name = txt_name[:-4] + '.jpg'
         img_path = os.path.join(img_dir, img_name)
         img = Image.open(img_path)
         txt_path = os.path.join(txt_dir, txt_name)
@@ -261,15 +262,25 @@ if __name__ == '__main__':
         reader = file.readlines()
         boxes = []
         txts = []
+        # print(txt_name)
         for reade in reader:
             reade_list = reade.strip().split('\t')
+            conf = reade_list[4] if len(reade_list) > 4 else 0
+            det_conf = reade_list[3] if len(reade_list) > 4 else 0
+            if float(det_conf) >= 0.55 or float(det_conf) < 0.45:
+                continue
+            if float(conf) >= 0.75 or float(conf) < 0.65:
+                continue
+            # if float(det_conf) >= 0.35:
+            #     continue
             source = reade_list[1].split(',')
-            txt = reade_list[2] if len(reade_list)>2 else ""
+            txt = reade_list[2] if len(reade_list) > 2 else ""
+
             line = [i.strip('\ufeff').strip('\xef\xbb\xbf') for i in source]
             poly = np.array(list(map(float, line[:8]))).reshape((-1, 2)).tolist()
             poly = np.array(poly, np.int32)
             boxes.append(poly)
-            txts.append(txt)
+            txts.append(txt + f" {det_conf[2:5]} {conf[2:5]}")
 
         new_img = draw_ocr_box_txt(img, boxes, txts)
         new_img = new_img[:, :, ::-1]

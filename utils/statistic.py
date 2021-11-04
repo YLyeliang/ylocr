@@ -5,13 +5,13 @@
 """
 数据统计：字符统计
 """
+import csv
 
 import cv2
 import pickle
 from tqdm import tqdm
 import pandas as pd
 import json
-from tensorflow.keras.optimizers import Optimizer, SGD
 
 
 def CharFrequencyFromPkl(pkl_file, out_file=None):
@@ -86,6 +86,30 @@ def mergeTxt(src_txts, dst_txt):
         f.writelines(lines)
 
 
+def corpus_save(src_csv, dst_pkl):
+    """
+    解析比赛数据中的标签，构建语料库
+    Args:
+        src_txt(str):
+        dst_pkl:
+    """
+    all_lines = []
+    for csv_file in src_csv:
+        with open(csv_file, 'r', encoding='utf-8') as f:
+            rows = csv.reader(f)
+            next(rows, None)
+            for row in rows:
+                labels = eval(row[-2])[0]
+                for label in labels:
+                    text = eval(label['text'])['text']
+                    if "*" in text:
+                        continue
+                    all_lines.append(text)
+    fw = open(dst_pkl, 'wb')
+    pickle.dump(all_lines, fw)
+    fw.close()
+
+
 if __name__ == '__main__':
     # CharFrequencyFromPkl('../data/wiki_corpus.pkl', "../data/wiki_char_frequency.txt")
     # with open("../data/wiki_char_frequency.txt", 'r') as f:
@@ -93,8 +117,8 @@ if __name__ == '__main__':
 
     # 统计训练集中出现的字符
     # global_dict = {}
-    # csv_file1 = "../data/OCR复赛数据集01.csv"
-    # csv_file2 = "../data/OCR复赛数据集02.csv"
+    csv_file1 = "../data/OCR复赛数据集01.csv"
+    csv_file2 = "../data/OCR复赛数据集02.csv"
     # get_chars()
     # global_dict = sorted(global_dict.items(), key=lambda x: (x[1], x[0]), reverse=True)
     # char_list = []
@@ -103,7 +127,10 @@ if __name__ == '__main__':
     #
     # writeChars(char_list, "tianchi_char.txt", "tianchi_char.pkl")
 
+    # 统计训练集的语料
+    corpus_save([csv_file1, csv_file2], '../data/tianchi_corpus.pkl')
+
     # 合并字符集
-    src_txts = ['ppocr_keys_v1.txt', 'tianchi_char.txt']
-    out_txts = "pp_tianchi_char.txt"
-    mergeTxt(src_txts, out_txts)
+    # src_txts = ['ppocr_keys_v1.txt', 'tianchi_char.txt']
+    # out_txts = "pp_tianchi_char.txt"
+    # mergeTxt(src_txts, out_txts)

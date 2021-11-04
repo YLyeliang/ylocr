@@ -7,8 +7,16 @@ import multiprocessing
 import os
 import pickle
 import time
+import argparse
 
 from trdg.apis.text_gen import textImgGen
+
+
+def parse_args():
+    args = argparse.ArgumentParser()
+    args.add_argument("--num_process", type=int, default=4)
+    args.add_argument("--total_num", type=int, default=200000)
+    return args.parse_args()
 
 
 def generate_mp(dataset, f, num, iter_num):
@@ -32,8 +40,9 @@ def generate_mp(dataset, f, num, iter_num):
 
 
 if __name__ == '__main__':
-    # dict_path = "utils/ppocr_keys_v1.txt"
-    dict_path = "utils/pp_tianchi_char.txt"
+    args = parse_args()
+    dict_path = "utils/ppocr_keys_v1.txt"
+    # dict_path = "utils/pp_tianchi_char.txt"
     dicts = []
     with open(dict_path, 'rb') as f:
         for p in f.readlines():
@@ -44,9 +53,15 @@ if __name__ == '__main__':
     char_idx_dict = {p: i for i, p in enumerate(dicts)}
     # idx_char_dict = {i: p for i, p in enumerate(dicts)}
 
+    # wiki corpus
     strings_path = "data/wiki_corpus.pkl"
     with open(strings_path, 'rb') as f:
         strings = pickle.load(f)
+
+    # competition corpus
+    extra_strings_path = "data/tianchi_corpus.pkl"
+    with open(extra_strings_path, 'rb') as f:
+        extra_strings = pickle.load(f)
 
     font_root = "trdg/fonts/"
     font_type = ['cn', 'latin', 'cn_tra']
@@ -58,16 +73,19 @@ if __name__ == '__main__':
     bg_image_dir = ['data/crop_debug', 'data/crop_receipt']
     bg_image_weight = [0.2, 0.8]
     data_generator = textImgGen(img_h=32, char_idx_dict=char_idx_dict,
-                                strings=strings, absolute_max_string_len=32, fonts=fonts,
+                                strings=strings, extra_strings=extra_strings, absolute_max_string_len=32, fonts=fonts,
                                 bg_image_dir=bg_image_dir, bg_image_weight=bg_image_weight)
 
     # dataset = DatasetBuilder(char_idx_dict, generator=dataset)
     # data_loader = dataset(8, True)
     s = time.time()
-    out_root = 'data/generation_train4'
-    out_txt = "data/generation_train4.txt"
-    num_process = 1
-    total_num = 1e2
+    out_root = 'data/generation_seed/generation_train4'
+    out_txt = "data/generation_seed/generation_train4.txt"
+    num_process = args.num_process
+    cpu_count = multiprocessing.cpu_count()
+    if num_process > cpu_count:
+        num_process = cpu_count
+    total_num = args.total_num
     num_per_process = int(total_num / num_process)
     processes = []
     if not os.path.exists(out_root):

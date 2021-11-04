@@ -55,11 +55,11 @@ def fromTxt(txt):
         # cv2.waitKey()
 
 def fromTxtBase64(txt):
-    txt = "data/log_18.txt"
+    txt = "data/log_22.txt"
     with open(txt, 'r')  as f:
         lines = f.readlines()
     arr = []
-    count = 607
+    count = 846
     for i, line in enumerate(lines):
         line = line.rstrip('\n')
         if "please use" in line:
